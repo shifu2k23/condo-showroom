@@ -1,0 +1,277 @@
+You are a senior Laravel engineer. Build an Airbnb-like property listing site using:
+- Laravel (latest stable)
+- Livewire (latest stable)
+- Laravel default authentication scaffolding already installed (login/register/password reset)
+- Testing framework: Pest
+
+This app has:
+1) PUBLIC “SHOWROOM” browsing of listings (no login button, no account UI for clients)
+2) HIDDEN ADMIN PANEL accessible only by typing /login (no public links)
+3) Admin manages listings (“units”), categories, media, pricing display options
+4) Clients can request a “book a viewing” schedule using a calendar UI (no client login)
+5) Pricing calculations for stays (nightly and monthly) with flexible display mode
+6) Real-time notifications to admin when viewing request is submitted
+7) Storage starts on local public disk but must be switchable to S3 by .env only
+
+ABSOLUTE SECURITY REQUIREMENTS:
+- Never expose API keys or secrets in client-side code (Blade, Livewire rendered HTML, JS).
+- Store secrets only in .env and config files.
+- For real-time notifications (Pusher/WebSockets/etc.), keep keys server-side; do not embed secrets in JS. Use backend broadcasting config properly.
+- For storage (S3/Cloudinary), use backend-controlled uploads or signed upload URLs; never ship credentials to the browser.
+- Do not commit .env. Do not log secrets.
+
+========================================================
+A) PUBLIC SHOWROOM REQUIREMENTS (NO LOGIN UI)
+========================================================
+Routes:
+- GET / : listings showroom
+- GET /units/{unit:slug_or_public_id} : listing detail page (or Livewire modal)
+
+Public Showroom features:
+- Search bar (by unit name/location keyword)
+- Category filter chips (default categories seedable; admin can CRUD)
+- Unit cards show:
+  - Cover image
+  - Name/title
+  - Category
+  - Price display (depends on unit setting: per night or per month) with PHP currency formatting (₱)
+  - Availability badge (Available / Unavailable)
+- Unit detail page shows:
+  - Image slideshow/gallery
+  - Description
+  - Pricing section:
+     - Display price in the unit’s chosen display mode (nightly or monthly)
+     - Price estimator widget:
+        - user selects check-in/check-out dates
+        - show computed nights + total price
+        - if stay length qualifies for monthly pricing, apply monthly price rule as configured
+  - “Request a Viewing” section:
+     - calendar date picker + time slot selector
+     - submits a viewing request (no client login)
+     - shows success message with requested date/time
+
+IMPORTANT:
+- Public pages MUST NOT contain any login/register buttons or admin links.
+- Admin access is only via /login typed in the browser.
+
+========================================================
+B) ADMIN PANEL REQUIREMENTS
+========================================================
+Admin routes (auth protected):
+- /admin (dashboard)
+- /admin/units (index/search/filter)
+- /admin/units/create
+- /admin/units/{unit}/edit
+- /admin/categories (CRUD)
+- /admin/viewing-requests (manage scheduled viewings)
+- /admin/logs (audit logs)
+
+Admin Dashboard UI sections (functional requirements):
+- KPIs: total units, available, unavailable, viewing requests upcoming, requests this week
+- Quick Actions: Add unit, Manage categories, View viewing requests
+- Recent Activity: last 10 log entries
+- Upcoming Viewings: next 10 scheduled viewing requests
+
+Admin Units management:
+Unit fields:
+- name/title (required)
+- category_id (required)
+- location (string nullable)
+- description (text nullable)
+- status (AVAILABLE/UNAVAILABLE) default AVAILABLE
+- pricing:
+  - nightly_price_php (nullable integer)
+  - monthly_price_php (nullable integer)
+  - price_display_mode enum: NIGHT or MONTH (controls what the public card primarily shows)
+  - allow_estimator boolean default true
+- media: multiple images with sort_order
+- soft deletes enabled
+- created_by / updated_by tracked (optional but recommended)
+
+Admin can:
+- create/edit/soft-delete/restore units
+- upload images, remove images, reorder images
+- set availability status explicitly (no ambiguous toggles; use explicit actions)
+- set pricing display mode (per night or per month)
+- configure whether estimator uses nightly only, monthly only, or hybrid rule (see Pricing Rules)
+
+Admin Categories management:
+- Seed default categories (e.g., Condo, House, Studio, Room, Villa) and allow CRUD.
+- Prevent deletion if category has units.
+
+Admin Viewing Requests:
+- List requests with filters:
+  - date range, unit, status (PENDING/CONFIRMED/CANCELLED)
+- Ability to confirm/cancel requests
+- Show details: requester name, phone/email, requested datetime, unit, notes
+
+========================================================
+C) CALENDAR + VIEWING REQUESTS (NO CLIENT LOGIN)
+========================================================
+Create ViewingRequest flow:
+Public submits:
+- unit_id
+- requested_start_at (datetime)
+- requested_end_at (datetime optional or fixed duration)
+- requester_name
+- requester_phone (optional)
+- requester_email (optional)
+- notes (optional)
+
+Validation:
+- requested_start_at must be in the future
+- prevent overlaps for the same unit in CONFIRMED state (and optionally PENDING)
+- rate-limit request submissions per IP
+
+========================================================
+D) PRICING ENGINE REQUIREMENTS
+========================================================
+Pricing display + calculation:
+- Store nightly_price_php and monthly_price_php as integers (₱ whole pesos; no formatted strings in DB).
+- Unit has price_display_mode:
+   - NIGHT: cards show nightly price
+   - MONTH: cards show monthly price
+
+Estimator:
+- Input check-in/out dates
+- Compute number of nights
+- Compute total using rule:
+   1) If monthly_price_php exists AND stay length >= 30 nights:
+       - months = floor(nights / 30)
+       - remainder = nights % 30
+       - total = months * monthly_price + remainder * nightly_price (if nightly exists) else prorate monthly/30 (define rule)
+   2) Else:
+       - total = nights * nightly_price
+
+Define and implement a clear rule when nightly is missing but monthly exists:
+- If nightly is null and monthly exists: nightly_rate = round(monthly_price / 30)
+Same for missing monthly but nightly exists: monthly_display optional computed? No—only if stored.
+
+Ensure currency formatting:
+- Use PHP formatting for ₱ with thousand separators (en-PH).
+
+========================================================
+E) REAL-TIME NOTIFICATIONS TO ADMIN (VIEWING REQUESTS)
+========================================================
+Requirement:
+- When a viewing request is created, notify admin in real time.
+
+Implementation options:
+- Laravel broadcasting events + WebSockets (Pusher-compatible) OR Laravel WebSockets (self-hosted).
+- Use Notification system:
+   - ViewingRequested notification sent to admins (users with is_admin)
+- Admin UI:
+   - Notification bell badge count
+   - “Recent notifications” dropdown
+   - Viewing Requests page highlights new requests
+
+SECURITY:
+- Do not expose broadcasting secrets client-side.
+- Use proper broadcasting config with public key only if required; keep secrets server-side.
+
+========================================================
+F) STORAGE REQUIREMENTS (LOCAL DEV/DEMO + S3 READY)
+========================================================
+- Default FILESYSTEM_DISK=public in .env
+- Store only relative paths in DB: units/{unit_id}/{filename}.jpg
+- Render URLs via Storage::url($path)
+- Never store full URLs in DB
+- Document `php artisan storage:link` in README
+- Switching to S3 must only require .env change (FILESYSTEM_DISK=s3 + creds)
+
+========================================================
+G) DATABASE / MODELS (MANDATORY)
+========================================================
+Tables:
+1) categories: id, name unique, timestamps
+2) units:
+   - id, public_id (ULID) unique indexed
+   - category_id fk indexed
+   - name indexed
+   - slug (optional unique) OR use public_id for routing
+   - location nullable
+   - description nullable
+   - status AVAILABLE/UNAVAILABLE indexed
+   - nightly_price_php nullable
+   - monthly_price_php nullable
+   - price_display_mode NIGHT/MONTH
+   - allow_estimator boolean
+   - created_by, updated_by nullable indexed
+   - timestamps, softDeletes
+3) unit_images:
+   - id, unit_id fk indexed, path (relative), sort_order, timestamps
+4) viewing_requests:
+   - id, unit_id fk indexed
+   - requester_name, requester_email nullable, requester_phone nullable
+   - requested_start_at indexed
+   - requested_end_at nullable
+   - status PENDING/CONFIRMED/CANCELLED indexed
+   - notes nullable
+   - created_at, updated_at
+5) audit_logs (or unit_inventory_logs):
+   - id, unit_id nullable, user_id nullable
+   - action (CREATE/UPDATE/SET_AVAILABLE/SET_UNAVAILABLE/IMAGE_ADD/IMAGE_REMOVE/VIEWING_REQUEST_CREATED/VIEWING_REQUEST_CONFIRMED/...)
+   - changes JSON nullable
+   - ip_address/user_agent nullable
+   - created_at
+
+Relationships:
+- Category hasMany Units
+- Unit belongsTo Category
+- Unit hasMany UnitImages ordered by sort_order
+- Unit hasMany ViewingRequests
+- ViewingRequest belongsTo Unit
+- AuditLog belongsTo Unit and User
+
+========================================================
+H) AUTHORIZATION
+========================================================
+- Add users.is_admin boolean (or role)
+- Admin routes: middleware(['auth','verified','admin'])
+- Non-admin authenticated users get 403
+- Public routes never allow mutation endpoints
+
+========================================================
+I) LIVEWIRE COMPONENTS (SUGGESTED)
+========================================================
+Public:
+- ShowroomIndex (search + category filters + units grid)
+- UnitShow (detail + gallery + estimator + viewing request form)
+
+Admin:
+- AdminDashboard
+- AdminUnitsIndex
+- AdminUnitForm
+- AdminCategories
+- AdminViewingRequests
+- AdminLogs
+- AdminNotificationsBell (optional)
+
+========================================================
+J) TESTING (PEST)
+========================================================
+Write Pest tests for:
+- Public showroom returns 200
+- No public login link exists on public pages (assert notContains '/login' link)
+- Admin routes redirect guest to login
+- Non-admin user gets 403 on /admin
+- Admin can CRUD categories and units
+- Storage saves relative image paths only
+- Viewing request validation (future date required)
+- Viewing request creates audit log and triggers notification (fake notifications)
+- Pricing calculator:
+  - nightly only
+  - monthly only (derive nightly from monthly/30)
+  - hybrid months + remainder
+- Concurrency safety for availability updates (transaction + lockForUpdate) if implemented
+
+========================================================
+K) README
+========================================================
+Document:
+- Setup, migrate, seed
+- storage:link
+- Admin access: type /login then /admin
+- Real-time notifications setup notes (env vars)
+- Security warning: never expose API keys client-side; backend-only patterns
+Deliver clean code, passing tests, minimal but production-oriented.

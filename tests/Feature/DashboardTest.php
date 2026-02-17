@@ -1,0 +1,24 @@
+<?php
+
+use App\Models\User;
+
+test('guests are redirected to the login page for admin dashboard', function () {
+    $response = $this->get(route('admin.dashboard'));
+    $response->assertRedirect(route('login'));
+});
+
+test('non-admin authenticated users cannot access admin dashboard', function () {
+    $user = User::factory()->create(['is_admin' => false]);
+    $this->actingAs($user);
+
+    $response = $this->get(route('admin.dashboard'));
+    $response->assertForbidden();
+});
+
+test('admin authenticated users can visit the dashboard', function () {
+    $user = User::factory()->admin()->create();
+    $this->actingAs($user);
+
+    $response = $this->get(route('admin.dashboard'));
+    $response->assertOk();
+});
