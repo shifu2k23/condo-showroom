@@ -22,24 +22,32 @@
     <body class="min-h-screen bg-slate-50 text-slate-900 antialiased [font-family:'Manrope',sans-serif]">
         <div class="relative min-h-screen bg-[radial-gradient(circle_at_10%_0%,rgba(99,102,241,0.16)_0%,rgba(248,250,252,0)_35%),radial-gradient(circle_at_90%_10%,rgba(14,165,233,0.12)_0%,rgba(248,250,252,0)_40%)]">
             <nav class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
-                <div class="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
-                    <a href="{{ route('home') }}" class="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40">
-                        <span class="h-8 w-8 rounded-lg bg-indigo-600" aria-hidden="true"></span>
-                        <span class="text-xl font-bold tracking-tight">Condo Luxe</span>
-                    </a>
+                <div class="mx-auto max-w-7xl px-4 sm:px-6">
+                    <div class="flex min-h-20 items-center justify-between gap-3 py-3">
+                        <a href="{{ route('home') }}" class="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40">
+                            <span class="h-8 w-8 shrink-0 rounded-lg bg-indigo-600" aria-hidden="true"></span>
+                            <span class="text-lg font-bold tracking-tight sm:text-xl">Condo Luxe</span>
+                        </a>
 
-                    <div class="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex" aria-label="Primary">
+                        <div class="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex" aria-label="Primary">
+                            <a href="{{ route('home') }}" class="transition hover:text-indigo-600">Showrooms</a>
+                            <a href="{{ route('home') }}#category-filters" class="transition hover:text-indigo-600">Categories</a>
+                            <a href="#contact" class="transition hover:text-indigo-600">Contact</a>
+                        </div>
+
+                        <a
+                            href="{{ route('renter.access') }}"
+                            class="inline-flex min-h-11 items-center justify-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/40 sm:px-5"
+                        >
+                            Renter Access
+                        </a>
+                    </div>
+
+                    <div class="flex items-center gap-4 pb-3 text-sm font-medium text-slate-600 md:hidden" aria-label="Primary">
                         <a href="{{ route('home') }}" class="transition hover:text-indigo-600">Showrooms</a>
                         <a href="{{ route('home') }}#category-filters" class="transition hover:text-indigo-600">Categories</a>
                         <a href="#contact" class="transition hover:text-indigo-600">Contact</a>
                     </div>
-
-                    <a
-                        href="{{ route('renter.access') }}"
-                        class="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/40"
-                    >
-                        Renter Access
-                    </a>
                 </div>
             </nav>
 

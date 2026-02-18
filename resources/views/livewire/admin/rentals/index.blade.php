@@ -7,7 +7,7 @@
     @if ($issuedRentalCode)
         <div class="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 text-indigo-900">
             <p class="text-sm font-semibold uppercase tracking-[0.14em]">Renter Access Code (shown once)</p>
-            <p class="mt-2 font-mono text-3xl tracking-[0.22em]">{{ $issuedRentalCode }}</p>
+            <p class="mt-2 break-all font-mono text-xl tracking-[0.14em] sm:text-3xl sm:tracking-[0.22em]">{{ $issuedRentalCode }}</p>
             <p class="mt-2 text-sm text-indigo-700">Print or hand this to the renter now. It cannot be recovered later.</p>
         </div>
     @endif

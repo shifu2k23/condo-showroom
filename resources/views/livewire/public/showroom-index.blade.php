@@ -1,24 +1,24 @@
 <div>
-    <section class="mx-auto max-w-7xl px-6 pb-12 pt-14">
-        <h1 class="text-4xl font-extrabold tracking-tight text-slate-900">Find your next stay.</h1>
+    <section class="mx-auto max-w-7xl px-4 pb-10 pt-10 sm:px-6 sm:pb-12 sm:pt-14">
+        <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">Find your next stay.</h1>
 
-        <div class="mt-8 flex flex-col gap-4 rounded-2xl border border-slate-100 bg-white p-2 shadow-xl shadow-slate-200/50 md:flex-row">
+        <div class="mt-8 flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-2 shadow-xl shadow-slate-200/50 lg:flex-row lg:items-center">
             <label class="sr-only" for="showroom-search">Search by name or location</label>
             <input
                 id="showroom-search"
                 type="text"
                 wire:model.live.debounce.350ms="search"
                 placeholder="Search by name or location..."
-                class="flex-1 rounded-xl px-6 py-4 text-slate-700 outline-none ring-indigo-500/30 transition focus:ring"
+                class="w-full flex-1 rounded-xl px-5 py-3.5 text-slate-700 outline-none ring-indigo-500/30 transition focus:ring lg:px-6 lg:py-4"
             />
 
-            <div class="hidden h-10 w-px self-center bg-slate-200 md:block" aria-hidden="true"></div>
+            <div class="hidden h-10 w-px self-center bg-slate-200 lg:block" aria-hidden="true"></div>
 
             <label class="sr-only" for="showroom-category">Category</label>
             <select
                 id="showroom-category"
                 wire:model.live="categoryFilter"
-                class="cursor-pointer rounded-xl px-6 py-4 text-slate-600 outline-none ring-indigo-500/30 transition focus:ring"
+                class="w-full cursor-pointer rounded-xl px-5 py-3.5 text-slate-600 outline-none ring-indigo-500/30 transition focus:ring lg:w-auto lg:px-6 lg:py-4"
             >
                 <option value="">All categories</option>
                 @foreach($categories as $category)
@@ -29,7 +29,7 @@
             <button
                 type="button"
                 wire:click="$refresh"
-                class="rounded-xl bg-indigo-600 px-8 py-4 font-semibold text-white transition-all hover:shadow-lg hover:shadow-indigo-200"
+                class="inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-8 py-3.5 font-semibold text-white transition-all hover:shadow-lg hover:shadow-indigo-200 lg:w-auto lg:py-4"
             >
                 Search
             </button>
@@ -55,13 +55,13 @@
         </div>
     </section>
 
-    <section id="showroom-results" class="mx-auto max-w-7xl px-6 pb-20">
+    <section id="showroom-results" class="mx-auto max-w-7xl px-4 pb-20 sm:px-6">
         @if($units->isEmpty())
             <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
                 <p class="text-slate-500">No units match your search.</p>
             </div>
         @else
-            <div class="grid grid-cols-1 gap-10 md:grid-cols-3">
+            <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-3">
                 @foreach($units as $unit)
                     <a href="{{ route('unit.show', $unit) }}" class="group block cursor-pointer">
                         <div class="relative mb-4 aspect-[4/5] overflow-hidden rounded-3xl bg-slate-200">

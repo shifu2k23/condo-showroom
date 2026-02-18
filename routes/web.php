@@ -22,6 +22,21 @@ use Illuminate\Support\Facades\Route;
 | Public Showroom Routes
 |--------------------------------------------------------------------------
 */
+Route::get('/project-images/{filename}', function (string $filename) {
+    abort_unless(
+        preg_match('/^[A-Za-z0-9._-]+\.(jpg|jpeg|png|webp|avif)$/i', $filename) === 1,
+        404
+    );
+
+    $path = base_path('images'.DIRECTORY_SEPARATOR.$filename);
+
+    abort_unless(is_file($path), 404);
+
+    return response()->file($path, [
+        'Cache-Control' => 'public, max-age=86400',
+    ]);
+})->name('project.image');
+
 Route::get('/', ShowroomIndex::class)->name('home');
 Route::get('/units/{unit}', UnitShow::class)->name('unit.show');
 Route::get('/renter/access', RenterPortal::class)->middleware('no-store')->name('renter.access');

@@ -68,7 +68,7 @@
                     </ul>
                 </nav>
 
-                <div class="border-t border-slate-200 px-4 py-4 lg:mt-auto">
+                <div class="hidden border-t border-slate-200 px-4 py-4 lg:mt-auto lg:block">
                     <div class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
                         <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-100 text-sm font-semibold text-indigo-700">{{ auth()->user()->initials() }}</span>
                         <div class="min-w-0 flex-1">
