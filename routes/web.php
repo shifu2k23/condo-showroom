@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\RenterAccessController;
+use App\Http\Controllers\RenterTicketController;
 use App\Livewire\Admin\AuditLogs\Index as AuditLogsIndex;
 use App\Livewire\Admin\Categories\Index as CategoriesIndex;
 use App\Livewire\Admin\Dashboard;
@@ -13,8 +15,6 @@ use App\Livewire\Public\RenterPortal;
 use App\Livewire\Public\RenterTickets;
 use App\Livewire\Public\ShowroomIndex;
 use App\Livewire\Public\UnitShow;
-use App\Http\Controllers\RenterAccessController;
-use App\Http\Controllers\RenterTicketController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -56,6 +56,7 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::get('/viewing-requests', ViewingRequestsIndex::class)->name('viewing-requests.index');
         Route::get('/rentals', RentalsIndex::class)->name('rentals.index');
         Route::get('/rentals/create', RentalForm::class)->name('rentals.create');
+        Route::get('/rentals/{rental}/edit', RentalForm::class)->name('rentals.edit');
         Route::get('/logs', AuditLogsIndex::class)->name('logs.index');
     });
 

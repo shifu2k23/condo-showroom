@@ -119,6 +119,167 @@
             </div>
         </div>
 
+        <div id="admin-confirm-overlay" class="pointer-events-none fixed inset-0 z-[90] flex items-end justify-center p-4 opacity-0 transition-opacity duration-200 sm:items-center sm:p-6" aria-hidden="true">
+            <div class="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]" data-confirm-backdrop></div>
+            <div id="admin-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="admin-confirm-title" aria-describedby="admin-confirm-message" class="relative w-full max-w-md translate-y-6 scale-[0.96] rounded-3xl border border-slate-700/70 bg-gradient-to-b from-slate-900 to-slate-950 p-6 text-slate-100 opacity-0 shadow-[0_18px_60px_rgba(2,6,23,0.55)] transition-all duration-300 ease-out">
+                <div class="mb-4 flex items-center gap-3">
+                    <span id="admin-confirm-icon" class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-rose-300/30 bg-rose-400/10 text-rose-200">
+                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                            <path d="M12 9v4m0 4h.01M10.25 3.76 1.82 18a1.5 1.5 0 0 0 1.29 2.25h16.78A1.5 1.5 0 0 0 21.18 18L12.75 3.76a1.5 1.5 0 0 0-2.5 0Z"/>
+                        </svg>
+                    </span>
+                    <p id="admin-confirm-title" class="text-lg font-semibold tracking-tight">Confirm Action</p>
+                </div>
+
+                <p id="admin-confirm-message" class="text-sm leading-relaxed text-slate-300">
+                    This action needs your confirmation.
+                </p>
+
+                <div class="mt-6 flex items-center justify-end gap-3">
+                    <button id="admin-confirm-cancel" type="button" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:-translate-y-0.5 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
+                        Keep Editing
+                    </button>
+                    <button id="admin-confirm-approve" type="button" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
+                        Yes, Continue
+                    </button>
+                </div>
+            </div>
+        </div>
+
         @fluxScripts
+        <script>
+            (() => {
+                const overlay = document.getElementById('admin-confirm-overlay');
+                const dialog = document.getElementById('admin-confirm-dialog');
+                const titleEl = document.getElementById('admin-confirm-title');
+                const messageEl = document.getElementById('admin-confirm-message');
+                const iconWrap = document.getElementById('admin-confirm-icon');
+                const confirmButton = document.getElementById('admin-confirm-approve');
+                const cancelButton = document.getElementById('admin-confirm-cancel');
+
+                if (!overlay || !dialog || !titleEl || !messageEl || !confirmButton || !cancelButton || !iconWrap) {
+                    return;
+                }
+
+                const neutralButtonClasses = ['bg-indigo-600', 'hover:bg-indigo-500', 'focus-visible:ring-indigo-500/40'];
+                const dangerButtonClasses = ['bg-rose-600', 'hover:bg-rose-500', 'focus-visible:ring-rose-500/40'];
+                const neutralIconClasses = ['border-indigo-300/30', 'bg-indigo-400/10', 'text-indigo-200'];
+                const dangerIconClasses = ['border-rose-300/30', 'bg-rose-400/10', 'text-rose-200'];
+
+                let pendingTrigger = null;
+                let isOpen = false;
+
+                const openModal = (trigger) => {
+                    const title = trigger.getAttribute('data-confirm-title') || 'Confirm Action';
+                    const message = trigger.getAttribute('data-confirm') || 'This action needs your confirmation.';
+                    const approveLabel = trigger.getAttribute('data-confirm-confirm') || 'Yes, Continue';
+                    const cancelLabel = trigger.getAttribute('data-confirm-cancel') || 'Keep Editing';
+                    const tone = trigger.getAttribute('data-confirm-tone') || 'danger';
+
+                    titleEl.textContent = title;
+                    messageEl.textContent = message;
+                    confirmButton.textContent = approveLabel;
+                    cancelButton.textContent = cancelLabel;
+
+                    confirmButton.classList.remove(...neutralButtonClasses, ...dangerButtonClasses);
+                    iconWrap.classList.remove(...neutralIconClasses, ...dangerIconClasses);
+
+                    if (tone === 'neutral') {
+                        confirmButton.classList.add(...neutralButtonClasses);
+                        iconWrap.classList.add(...neutralIconClasses);
+                    } else {
+                        confirmButton.classList.add(...dangerButtonClasses);
+                        iconWrap.classList.add(...dangerIconClasses);
+                    }
+
+                    pendingTrigger = trigger;
+                    isOpen = true;
+
+                    overlay.classList.remove('pointer-events-none', 'opacity-0');
+                    overlay.setAttribute('aria-hidden', 'false');
+                    document.body.classList.add('overflow-hidden');
+
+                    requestAnimationFrame(() => {
+                        dialog.classList.remove('translate-y-6', 'scale-[0.96]', 'opacity-0');
+                    });
+                };
+
+                const closeModal = () => {
+                    if (!isOpen) {
+                        return;
+                    }
+
+                    isOpen = false;
+                    pendingTrigger = null;
+                    overlay.setAttribute('aria-hidden', 'true');
+                    overlay.classList.add('opacity-0');
+                    dialog.classList.add('translate-y-6', 'scale-[0.96]', 'opacity-0');
+                    document.body.classList.remove('overflow-hidden');
+
+                    window.setTimeout(() => {
+                        if (!isOpen) {
+                            overlay.classList.add('pointer-events-none');
+                        }
+                    }, 210);
+                };
+
+                document.addEventListener('click', (event) => {
+                    const target = event.target;
+
+                    if (!(target instanceof Element)) {
+                        return;
+                    }
+
+                    const trigger = target.closest('[data-confirm]');
+
+                    if (!trigger) {
+                        return;
+                    }
+
+                    if (trigger.getAttribute('data-confirming') === 'true') {
+                        trigger.removeAttribute('data-confirming');
+
+                        return;
+                    }
+
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    openModal(trigger);
+                }, true);
+
+                confirmButton.addEventListener('click', () => {
+                    const trigger = pendingTrigger;
+                    closeModal();
+
+                    if (!trigger) {
+                        return;
+                    }
+
+                    trigger.setAttribute('data-confirming', 'true');
+                    trigger.click();
+                });
+
+                cancelButton.addEventListener('click', closeModal);
+
+                overlay.addEventListener('click', (event) => {
+                    const target = event.target;
+
+                    if (!(target instanceof Element)) {
+                        return;
+                    }
+
+                    if (target.hasAttribute('data-confirm-backdrop')) {
+                        closeModal();
+                    }
+                });
+
+                document.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape') {
+                        closeModal();
+                    }
+                });
+            })();
+        </script>
     </body>
 </html>

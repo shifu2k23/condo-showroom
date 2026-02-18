@@ -79,7 +79,15 @@
                             @endif
 
                             <div class="absolute right-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[10px] font-bold uppercase tracking-widest shadow-sm backdrop-blur">
-                                {{ $unit->status === \App\Models\Unit::STATUS_AVAILABLE ? 'Available' : 'Unavailable' }}
+                                @if($unit->has_active_rental)
+                                    Rented
+                                @elseif($unit->status !== \App\Models\Unit::STATUS_AVAILABLE)
+                                    Unavailable
+                                @elseif($unit->has_upcoming_rental)
+                                    Reserved
+                                @else
+                                    Available
+                                @endif
                             </div>
                         </div>
 
@@ -88,6 +96,15 @@
                                 <h2 class="text-lg font-bold text-slate-900">{{ $unit->name }}</h2>
                                 <p class="text-sm italic text-slate-500">{{ $unit->location ?: 'Location not provided' }}</p>
                                 <p class="mt-1 text-xs uppercase tracking-wide text-slate-400">{{ $unit->category?->name ?? 'Uncategorized' }}</p>
+                                @if($unit->has_active_rental && $unit->active_rental_ends_at)
+                                    <p class="mt-1 text-xs text-rose-600">
+                                        Rented until {{ \Carbon\Carbon::parse($unit->active_rental_ends_at)->format('M d, Y h:i A') }}
+                                    </p>
+                                @elseif($unit->has_upcoming_rental && $unit->next_rental_starts_at)
+                                    <p class="mt-1 text-xs text-amber-600">
+                                        Reserved starting {{ \Carbon\Carbon::parse($unit->next_rental_starts_at)->format('M d, Y h:i A') }}
+                                    </p>
+                                @endif
                             </div>
 
                             <div class="text-right">

@@ -46,7 +46,7 @@
                                 @if($category->units_count > 0)
                                     <button type="button" disabled aria-disabled="true" class="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 px-3 text-xs font-medium text-slate-400">Delete</button>
                                 @else
-                                    <button type="button" wire:click="delete({{ $category->id }})" wire:confirm="Delete this category?" class="inline-flex min-h-10 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-semibold text-red-700 transition hover:-translate-y-0.5 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white">Delete</button>
+                                    <button type="button" wire:click="delete({{ $category->id }})" data-confirm-title="Delete Category" data-confirm="This will permanently remove &quot;{{ $category->name }}&quot; from your category list." data-confirm-confirm="Yes, Delete" data-confirm-cancel="Keep Category" data-confirm-tone="danger" class="inline-flex min-h-10 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-semibold text-red-700 transition hover:-translate-y-0.5 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white">Delete</button>
                                 @endif
                             </div>
                         </td>

@@ -26,4 +26,9 @@ class RentalPolicy
     {
         return (bool) $user->is_admin;
     }
+
+    public function delete(User $user, Rental $rental): bool
+    {
+        return (bool) $user->is_admin;
+    }
 }

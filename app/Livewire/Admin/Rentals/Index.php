@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Rentals;
 
 use App\Models\Rental;
 use App\Models\Unit;
+use App\Services\AuditLogger;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -30,6 +31,45 @@ class Index extends Component
     {
         $this->authorize('viewAny', Rental::class);
         $this->issuedRentalCode = session()->pull('issued_rental_code');
+    }
+
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingStatusFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingUnitFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function deleteRental(int $rentalId, AuditLogger $auditLogger): void
+    {
+        $rental = Rental::query()->with('unit')->findOrFail($rentalId);
+        $this->authorize('delete', $rental);
+
+        $auditLogger->log(
+            action: 'RENTAL_DELETED',
+            unit: $rental->unit,
+            changes: [
+                'rental_id' => $rental->id,
+                'renter_name' => $rental->renter_name,
+                'id_type' => $rental->id_type,
+                'public_code_last4' => $rental->public_code_last4,
+                'starts_at' => optional($rental->starts_at)->toDateTimeString(),
+                'ends_at' => optional($rental->ends_at)->toDateTimeString(),
+                'status' => $rental->status,
+            ]
+        );
+
+        $rental->delete();
+
+        session()->flash('status', 'Rental deleted successfully.');
     }
 
     public function render()

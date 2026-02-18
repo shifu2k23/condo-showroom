@@ -12,6 +12,12 @@
         </div>
     @endif
 
+    @if (session('status'))
+        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+            {{ session('status') }}
+        </div>
+    @endif
+
     <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <div class="grid grid-cols-1 gap-3 lg:grid-cols-3">
             <div class="relative">
@@ -45,6 +51,7 @@
                     <th scope="col" class="px-4 py-3 font-medium">Code Last4</th>
                     <th scope="col" class="px-4 py-3 font-medium">Window</th>
                     <th scope="col" class="px-4 py-3 font-medium">Status</th>
+                    <th scope="col" class="px-4 py-3 text-right font-medium">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -66,10 +73,16 @@
                                 <span class="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">CANCELLED</span>
                             @endif
                         </td>
+                        <td class="px-4 py-3">
+                            <div class="flex flex-wrap justify-end gap-2">
+                                <a href="{{ route('admin.rentals.edit', $rental) }}" wire:navigate class="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 transition hover:-translate-y-0.5 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white">Edit</a>
+                                <button type="button" wire:click="deleteRental({{ $rental->id }})" data-confirm-title="Delete Rental Record" data-confirm="You are about to delete renter &quot;{{ $rental->renter_name }}&quot; and its access timeline." data-confirm-confirm="Delete Rental" data-confirm-cancel="Keep Record" data-confirm-tone="danger" class="inline-flex min-h-10 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-semibold text-red-700 transition hover:-translate-y-0.5 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white">Delete</button>
+                            </div>
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-4 py-10 text-center text-sm text-slate-500">No rentals found.</td>
+                        <td colspan="8" class="px-4 py-10 text-center text-sm text-slate-500">No rentals found.</td>
                     </tr>
                 @endforelse
             </tbody>
