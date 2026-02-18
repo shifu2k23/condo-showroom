@@ -17,6 +17,9 @@ test('admin can create and update units', function () {
         ->set('name', 'Sunrise Condo')
         ->set('category_id', (string) $category->id)
         ->set('location', 'Makati')
+        ->set('latitude', '14.5547000')
+        ->set('longitude', '121.0244000')
+        ->set('address_text', 'Makati City, Metro Manila')
         ->set('description', 'City-facing condo unit')
         ->set('status', Unit::STATUS_AVAILABLE)
         ->set('nightly_price_php', 2500)
@@ -32,6 +35,8 @@ test('admin can create and update units', function () {
 
     Livewire::test(UnitForm::class, ['unit' => $unit])
         ->set('name', 'Sunrise Condo Updated')
+        ->set('latitude', '14.5678000')
+        ->set('longitude', '121.0001000')
         ->set('price_display_mode', Unit::DISPLAY_MONTH)
         ->set('monthly_price_php', 50000)
         ->call('save')

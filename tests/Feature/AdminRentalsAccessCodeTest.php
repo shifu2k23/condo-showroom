@@ -2,7 +2,9 @@
 
 use App\Livewire\Admin\Rentals\Form as RentalForm;
 use App\Livewire\Admin\Rentals\Index as RentalsIndex;
+use App\Models\MaintenanceTicket;
 use App\Models\Rental;
+use App\Models\RenterSession;
 use App\Models\Unit;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
@@ -105,6 +107,35 @@ test('admin can delete rental from listing', function () {
         ->assertHasNoErrors();
 
     expect(Rental::query()->whereKey($rental->id)->exists())->toBeFalse();
+});
+
+test('deleting rental cascades renter sessions and maintenance tickets', function () {
+    $admin = User::factory()->admin()->create();
+    $this->actingAs($admin);
+
+    $unit = Unit::factory()->create(['created_by' => $admin->id]);
+    $rental = Rental::factory()->create([
+        'unit_id' => $unit->id,
+        'created_by' => $admin->id,
+        'updated_by' => $admin->id,
+    ]);
+
+    $session = RenterSession::factory()->create([
+        'rental_id' => $rental->id,
+    ]);
+
+    $ticket = MaintenanceTicket::factory()->create([
+        'rental_id' => $rental->id,
+        'unit_id' => $unit->id,
+    ]);
+
+    Livewire::test(RentalsIndex::class)
+        ->call('deleteRental', $rental->id)
+        ->assertHasNoErrors();
+
+    expect(Rental::query()->whereKey($rental->id)->exists())->toBeFalse();
+    expect(RenterSession::query()->whereKey($session->id)->exists())->toBeFalse();
+    expect(MaintenanceTicket::query()->whereKey($ticket->id)->exists())->toBeFalse();
 });
 
 test('admin cannot update rental into overlapping active window for same unit', function () {

@@ -2,14 +2,15 @@
     $slides = collect(glob(base_path('images/*.{jpg,jpeg,png,webp,avif,JPG,JPEG,PNG,WEBP,AVIF}'), GLOB_BRACE))
         ->map(fn (string $path) => route('project.image', ['filename' => basename($path)]))
         ->values();
+    $brandName = \App\Models\AppSetting::get('site_name', config('app.name', 'Condo Showroom')) ?? config('app.name', 'Condo Showroom');
 @endphp
 
 <section class="px-4 py-10 sm:px-6 lg:px-8">
     <div class="mx-auto max-w-7xl">
-        <div class="overflow-hidden rounded-[2rem] border-[7px] border-emerald-950 bg-white shadow-[0_30px_90px_rgba(2,6,23,0.25)]">
-            <div class="grid min-h-[680px] grid-cols-1 lg:grid-cols-2">
+        <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/60">
+            <div class="grid grid-cols-1 lg:min-h-[680px] lg:grid-cols-2">
                 <div class="flex flex-col bg-white px-7 py-8 sm:px-10 sm:py-10">
-                    <div class="text-base font-bold tracking-[0.22em] text-emerald-800">CONDO LUXE</div>
+                    <div class="text-base font-bold tracking-[0.22em] text-emerald-800">{{ $brandName }}</div>
 
                     <div class="mt-10 max-w-md">
                         <h1 class="text-4xl font-extrabold tracking-tight text-slate-900">Welcome to Renter Access</h1>
@@ -106,7 +107,7 @@
                                 >
                                     <img
                                         src="{{ $slide }}"
-                                        alt="Condo showroom preview {{ $index + 1 }}"
+                                        alt="{{ $brandName }} preview {{ $index + 1 }}"
                                         class="h-full w-full object-cover object-center"
                                         loading="lazy"
                                     />

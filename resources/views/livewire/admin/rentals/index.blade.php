@@ -18,6 +18,12 @@
         </div>
     @endif
 
+    @if (session('error'))
+        <div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+            {{ session('error') }}
+        </div>
+    @endif
+
     <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <div class="grid grid-cols-1 gap-3 lg:grid-cols-3">
             <div class="relative">

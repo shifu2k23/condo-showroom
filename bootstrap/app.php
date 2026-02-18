@@ -12,6 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Trust local reverse proxies (e.g. ngrok) so Laravel reads X-Forwarded-Proto
+        // and generates correct https asset / script URLs.
+        $middleware->trustProxies(at: ['127.0.0.1', '::1']);
+
         $middleware->alias([
             'admin' => \App\Http\Middleware\IsAdmin::class,
             'no-store' => \App\Http\Middleware\PreventCachingSensitivePages::class,

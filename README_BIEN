@@ -1,0 +1,74 @@
+# Leaflet Unit Location Pinning (Condo Showroom)
+
+## Overview
+This project uses **Leaflet + OpenStreetMap tiles** to support:
+- Admin unit location pinning (create/edit)
+- Public read-only map display on unit detail pages
+- Google Maps and Directions links generated from stored coordinates
+
+No map API keys are used for this integration.
+
+## What Was Added
+- `units.latitude` (`decimal(10,7)`, nullable)
+- `units.longitude` (`decimal(10,7)`, nullable)
+- `units.address_text` (`string`, nullable)
+- Composite index on `latitude, longitude`
+
+`App\Models\Unit` now includes:
+- `hasLocation(): bool`
+- `googleMapsUrl(): string`
+- `googleDirectionsUrl(): string`
+
+## Admin Pin Workflow
+In Admin Unit Create/Edit:
+1. Open the **Location Pin** card.
+2. Click anywhere on the map to drop or move the marker.
+3. Latitude/Longitude fields are populated automatically.
+4. Optional:
+   - **Use my current location** (browser geolocation)
+   - **Clear pin**
+5. Save the unit.
+
+Validation rules (create + edit):
+- `latitude`: required, numeric, between `-90` and `90`
+- `longitude`: required, numeric, between `-180` and `180`
+
+## Public Unit Detail Behavior
+- If coordinates exist:
+  - Shows a read-only Leaflet map with marker
+  - Shows buttons:
+    - **Open in Google Maps**
+    - **Get Directions**
+- If coordinates are missing:
+  - Shows: **Location not available.**
+
+## Local Setup
+1. Install PHP and Node dependencies:
+```bash
+composer install
+npm install
+```
+2. Run migrations:
+```bash
+php artisan migrate
+```
+3. Start dev stack:
+```bash
+php artisan serve
+npm run dev
+```
+
+## Test Commands
+```bash
+php artisan test tests/Feature/AdminUnitsCrudTest.php
+php artisan test tests/Feature/UnitLocationMapTest.php
+php artisan test
+```
+
+## Security Notes
+- Do not expose provider tokens in Blade/Livewire/JS.
+- Current map tiles use OpenStreetMap and require no key.
+- If switching to a keyed provider later:
+  - Keep secrets in `.env`
+  - Do not render secrets in HTML/JS responses
+  - Prefer server-side proxy patterns when possible

@@ -51,6 +51,40 @@
                         <p class="whitespace-pre-line">{{ $unit->description ?: 'No description available.' }}</p>
                     </div>
                 </section>
+
+                <section class="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900">
+                    <h2 class="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">Location</h2>
+
+                    @if($unit->hasLocation())
+                        <div
+                            data-leaflet-readonly
+                            data-lat="{{ $unit->latitude }}"
+                            data-lng="{{ $unit->longitude }}"
+                            class="h-72 w-full overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800"
+                        ></div>
+
+                        <div class="mt-4 flex flex-wrap gap-2">
+                            <a
+                                href="{{ $unit->googleMapsUrl() }}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="inline-flex min-h-10 items-center justify-center rounded-lg border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                            >
+                                Open in Google Maps
+                            </a>
+                            <a
+                                href="{{ $unit->googleDirectionsUrl() }}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="inline-flex min-h-10 items-center justify-center rounded-lg bg-zinc-900 px-3 text-sm font-semibold text-white transition hover:bg-zinc-700 dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                            >
+                                Get Directions
+                            </a>
+                        </div>
+                    @else
+                        <p class="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">Location not available.</p>
+                    @endif
+                </section>
             </div>
 
             <div class="space-y-6">

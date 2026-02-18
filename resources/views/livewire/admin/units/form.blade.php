@@ -76,6 +76,59 @@
             </div>
         </div>
 
+        <div
+            class="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5"
+            data-leaflet-picker
+            data-livewire-id="{{ $this->getId() }}"
+            data-lat="{{ $latitude ?? '' }}"
+            data-lng="{{ $longitude ?? '' }}"
+        >
+            <div>
+                <h3 class="text-lg font-semibold text-slate-900">Location Pin</h3>
+                <p class="text-xs text-slate-500">Click on the map to drop a pin, or type latitude/longitude manually.</p>
+            </div>
+
+            <div wire:ignore>
+                <div data-leaflet-picker-map class="h-[360px] w-full overflow-hidden rounded-xl border border-slate-300 bg-white"></div>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+                <button
+                    type="button"
+                    data-leaflet-action="geolocate"
+                    class="inline-flex min-h-10 items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 px-3 text-xs font-semibold text-indigo-700 transition hover:-translate-y-0.5 hover:bg-indigo-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
+                >
+                    Use my current location
+                </button>
+                <button
+                    type="button"
+                    data-leaflet-action="clear"
+                    class="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-medium text-slate-700 transition hover:-translate-y-0.5 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
+                >
+                    Clear pin
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                    <label for="unit-latitude" class="mb-2 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Latitude</label>
+                    <input id="unit-latitude" type="text" wire:model="latitude" data-leaflet-lat-display inputmode="decimal" placeholder="e.g. 14.5995000" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 font-mono text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                    @error('latitude') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label for="unit-longitude" class="mb-2 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Longitude</label>
+                    <input id="unit-longitude" type="text" wire:model="longitude" data-leaflet-lng-display inputmode="decimal" placeholder="e.g. 120.9842000" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 font-mono text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                    @error('longitude') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                </div>
+            </div>
+
+            <div>
+                <label for="unit-address-text" class="mb-2 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Address Text (optional)</label>
+                <input id="unit-address-text" type="text" wire:model="address_text" placeholder="Nearest landmark or address note" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                @error('address_text') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+            </div>
+        </div>
+
         <div>
             <label for="unit-description" class="mb-2 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Description</label>
             <textarea id="unit-description" wire:model="description" rows="5" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"></textarea>

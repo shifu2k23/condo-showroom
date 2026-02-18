@@ -33,6 +33,9 @@ class Unit extends Model
         'name',
         'slug',
         'location',
+        'latitude',
+        'longitude',
+        'address_text',
         'description',
         'status',
         'nightly_price_php',
@@ -48,6 +51,8 @@ class Unit extends Model
         'nightly_price_php' => 'integer',
         'monthly_price_php' => 'integer',
         'allow_estimator' => 'boolean',
+        'latitude' => 'decimal:7',
+        'longitude' => 'decimal:7',
     ];
 
     public function uniqueIds(): array
@@ -110,5 +115,47 @@ class Unit extends Model
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function hasLocation(): bool
+    {
+        return $this->latitude !== null && $this->longitude !== null;
+    }
+
+    public function googleMapsUrl(): string
+    {
+        $coords = $this->formattedCoordinates();
+
+        if ($coords === null) {
+            return '';
+        }
+
+        return "https://www.google.com/maps?q={$coords[0]},{$coords[1]}";
+    }
+
+    public function googleDirectionsUrl(): string
+    {
+        $coords = $this->formattedCoordinates();
+
+        if ($coords === null) {
+            return '';
+        }
+
+        return "https://www.google.com/maps/dir/?api=1&destination={$coords[0]},{$coords[1]}";
+    }
+
+    /**
+     * @return array{0:string,1:string}|null
+     */
+    private function formattedCoordinates(): ?array
+    {
+        if (! $this->hasLocation()) {
+            return null;
+        }
+
+        return [
+            number_format((float) $this->latitude, 7, '.', ''),
+            number_format((float) $this->longitude, 7, '.', ''),
+        ];
     }
 }

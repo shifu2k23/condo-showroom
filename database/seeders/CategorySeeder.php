@@ -14,11 +14,9 @@ class CategorySeeder extends Seeder
     public function run(): void
     {
         $defaults = [
-            'Condo',
-            'House',
+            '1 Bedroom',
+            '2 Bedroom',
             'Studio',
-            'Room',
-            'Villa',
         ];
 
         foreach ($defaults as $name) {

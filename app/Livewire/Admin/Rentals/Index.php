@@ -6,6 +6,7 @@ use App\Models\Rental;
 use App\Models\Unit;
 use App\Services\AuditLogger;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -50,26 +51,33 @@ class Index extends Component
 
     public function deleteRental(int $rentalId, AuditLogger $auditLogger): void
     {
-        $rental = Rental::query()->with('unit')->findOrFail($rentalId);
-        $this->authorize('delete', $rental);
+        try {
+            DB::transaction(function () use ($rentalId, $auditLogger): void {
+                $rental = Rental::query()->with('unit')->findOrFail($rentalId);
+                $this->authorize('delete', $rental);
 
-        $auditLogger->log(
-            action: 'RENTAL_DELETED',
-            unit: $rental->unit,
-            changes: [
-                'rental_id' => $rental->id,
-                'renter_name' => $rental->renter_name,
-                'id_type' => $rental->id_type,
-                'public_code_last4' => $rental->public_code_last4,
-                'starts_at' => optional($rental->starts_at)->toDateTimeString(),
-                'ends_at' => optional($rental->ends_at)->toDateTimeString(),
-                'status' => $rental->status,
-            ]
-        );
+                $auditLogger->log(
+                    action: 'RENTAL_DELETED',
+                    unit: $rental->unit,
+                    changes: [
+                        'rental_id' => $rental->id,
+                        'renter_name' => $rental->renter_name,
+                        'id_type' => $rental->id_type,
+                        'public_code_last4' => $rental->public_code_last4,
+                        'starts_at' => optional($rental->starts_at)->toDateTimeString(),
+                        'ends_at' => optional($rental->ends_at)->toDateTimeString(),
+                        'status' => $rental->status,
+                    ]
+                );
 
-        $rental->delete();
+                $rental->delete();
+            });
 
-        session()->flash('status', 'Rental deleted successfully.');
+            session()->flash('status', 'Rental deleted successfully.');
+        } catch (\Throwable $exception) {
+            report($exception);
+            session()->flash('error', 'Unable to delete rental right now. Please refresh and try again.');
+        }
     }
 
     public function render()

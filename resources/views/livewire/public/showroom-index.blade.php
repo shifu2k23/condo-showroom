@@ -61,10 +61,10 @@
                 <p class="text-slate-500">No units match your search.</p>
             </div>
         @else
-            <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-3">
+            <div class="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-2 sm:gap-8 xl:grid-cols-3">
                 @foreach($units as $unit)
                     <a href="{{ route('unit.show', $unit) }}" class="group block cursor-pointer">
-                        <div class="relative mb-4 aspect-[4/5] overflow-hidden rounded-3xl bg-slate-200">
+                        <div class="relative mb-3 aspect-square overflow-hidden rounded-2xl bg-slate-200 sm:mb-4 sm:aspect-[4/5] sm:rounded-3xl">
                             @if($unit->images->isNotEmpty())
                                 <img
                                     src="{{ Storage::url($unit->images->first()->path) }}"
@@ -78,7 +78,7 @@
                                 </div>
                             @endif
 
-                            <div class="absolute right-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[10px] font-bold uppercase tracking-widest shadow-sm backdrop-blur">
+                            <div class="absolute right-2 top-2 rounded-full bg-white/90 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider shadow-sm backdrop-blur sm:right-4 sm:top-4 sm:px-3 sm:text-[10px] sm:tracking-widest">
                                 @if($unit->has_active_rental)
                                     Rented
                                 @elseif($unit->status !== \App\Models\Unit::STATUS_AVAILABLE)
@@ -91,17 +91,17 @@
                             </div>
                         </div>
 
-                        <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-start justify-between gap-2 sm:gap-3">
                             <div>
-                                <h2 class="text-lg font-bold text-slate-900">{{ $unit->name }}</h2>
-                                <p class="text-sm italic text-slate-500">{{ $unit->location ?: 'Location not provided' }}</p>
-                                <p class="mt-1 text-xs uppercase tracking-wide text-slate-400">{{ $unit->category?->name ?? 'Uncategorized' }}</p>
+                                <h2 class="text-base font-bold leading-tight text-slate-900 sm:text-lg">{{ $unit->name }}</h2>
+                                <p class="text-xs italic text-slate-500 sm:text-sm">{{ $unit->location ?: 'Location not provided' }}</p>
+                                <p class="mt-0.5 text-[10px] uppercase tracking-wide text-slate-400 sm:mt-1 sm:text-xs">{{ $unit->category?->name ?? 'Uncategorized' }}</p>
                                 @if($unit->has_active_rental && $unit->active_rental_ends_at)
-                                    <p class="mt-1 text-xs text-rose-600">
+                                    <p class="mt-1 hidden text-xs text-rose-600 sm:block">
                                         Rented until {{ \Carbon\Carbon::parse($unit->active_rental_ends_at)->format('M d, Y h:i A') }}
                                     </p>
                                 @elseif($unit->has_upcoming_rental && $unit->next_rental_starts_at)
-                                    <p class="mt-1 text-xs text-amber-600">
+                                    <p class="mt-1 hidden text-xs text-amber-600 sm:block">
                                         Reserved starting {{ \Carbon\Carbon::parse($unit->next_rental_starts_at)->format('M d, Y h:i A') }}
                                     </p>
                                 @endif
@@ -109,11 +109,11 @@
 
                             <div class="text-right">
                                 @if($unit->price_display_mode === \App\Models\Unit::DISPLAY_MONTH && $unit->monthly_price_php)
-                                    <span class="text-lg font-bold text-indigo-600">&#8369;{{ number_format($unit->monthly_price_php) }}</span>
-                                    <p class="text-[10px] font-bold uppercase tracking-tight text-slate-400">per month</p>
+                                    <span class="text-base font-bold text-indigo-600 sm:text-lg">&#8369;{{ number_format($unit->monthly_price_php) }}</span>
+                                    <p class="text-[9px] font-bold uppercase tracking-tight text-slate-400 sm:text-[10px]">per month</p>
                                 @elseif($unit->nightly_price_php)
-                                    <span class="text-lg font-bold text-indigo-600">&#8369;{{ number_format($unit->nightly_price_php) }}</span>
-                                    <p class="text-[10px] font-bold uppercase tracking-tight text-slate-400">per night</p>
+                                    <span class="text-base font-bold text-indigo-600 sm:text-lg">&#8369;{{ number_format($unit->nightly_price_php) }}</span>
+                                    <p class="text-[9px] font-bold uppercase tracking-tight text-slate-400 sm:text-[10px]">per night</p>
                                 @else
                                     <p class="text-sm font-medium text-slate-400">Price unavailable</p>
                                 @endif

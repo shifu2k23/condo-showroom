@@ -27,6 +27,12 @@ class Form extends Component
 
     public ?string $location = null;
 
+    public ?string $latitude = null;
+
+    public ?string $longitude = null;
+
+    public ?string $address_text = null;
+
     public ?string $description = null;
 
     public string $status = Unit::STATUS_AVAILABLE;
@@ -43,8 +49,12 @@ class Form extends Component
 
     public array $newImages = [];
 
-    public function mount($unit = null): void
+    public function mount(Unit|int|string|null $unit = null): void
     {
+        if ($unit !== null && ! $unit instanceof Unit) {
+            $unit = (new Unit)->resolveRouteBinding($unit);
+        }
+
         $this->unit = $unit instanceof Unit && $unit->exists
             ? $unit->load('images')
             : null;
@@ -62,6 +72,9 @@ class Form extends Component
         $this->name = $this->unit->name;
         $this->category_id = (string) $this->unit->category_id;
         $this->location = $this->unit->location;
+        $this->latitude = $this->unit->latitude !== null ? number_format((float) $this->unit->latitude, 7, '.', '') : null;
+        $this->longitude = $this->unit->longitude !== null ? number_format((float) $this->unit->longitude, 7, '.', '') : null;
+        $this->address_text = $this->unit->address_text;
         $this->description = $this->unit->description;
         $this->status = $this->unit->status;
         $this->nightly_price_php = $this->unit->nightly_price_php;
@@ -108,6 +121,9 @@ class Form extends Component
                 'slug' => $this->generateUniqueSlug($validated['name']),
                 'category_id' => (int) $validated['category_id'],
                 'location' => $validated['location'] ?: null,
+                'latitude' => isset($validated['latitude']) ? (float) $validated['latitude'] : null,
+                'longitude' => isset($validated['longitude']) ? (float) $validated['longitude'] : null,
+                'address_text' => $validated['address_text'] ?: null,
                 'description' => $validated['description'] ?: null,
                 'status' => $validated['status'],
                 'nightly_price_php' => $validated['nightly_price_php'],
@@ -162,6 +178,9 @@ class Form extends Component
                     'name',
                     'category_id',
                     'location',
+                    'latitude',
+                    'longitude',
+                    'address_text',
                     'status',
                     'nightly_price_php',
                     'monthly_price_php',
@@ -173,6 +192,9 @@ class Form extends Component
                     'name',
                     'category_id',
                     'location',
+                    'latitude',
+                    'longitude',
+                    'address_text',
                     'status',
                     'nightly_price_php',
                     'monthly_price_php',
@@ -235,6 +257,9 @@ class Form extends Component
             'name' => ['required', 'string', 'max:255'],
             'category_id' => ['required', 'integer', 'exists:categories,id'],
             'location' => ['nullable', 'string', 'max:255'],
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
+            'address_text' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'status' => ['required', 'in:'.Unit::STATUS_AVAILABLE.','.Unit::STATUS_UNAVAILABLE],
             'nightly_price_php' => ['nullable', 'integer', 'min:0'],

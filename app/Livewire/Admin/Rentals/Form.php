@@ -49,10 +49,14 @@ class Form extends Component
     ];
 
     /**
-     * @param  mixed  $rental
+     * @param  \App\Models\Rental|int|string|null  $rental
      */
-    public function mount($rental = null): void
+    public function mount(Rental|int|string|null $rental = null): void
     {
+        if ($rental !== null && ! $rental instanceof Rental) {
+            $rental = Rental::query()->whereKey($rental)->firstOrFail();
+        }
+
         if ($rental instanceof Rental && $rental->exists) {
             $this->authorize('update', $rental);
             $this->rentalRecord = $rental;
