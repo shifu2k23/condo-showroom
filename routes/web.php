@@ -8,9 +8,13 @@ use App\Livewire\Admin\Rentals\Index as RentalsIndex;
 use App\Livewire\Admin\Units\Form as UnitForm;
 use App\Livewire\Admin\Units\Index as UnitsIndex;
 use App\Livewire\Admin\ViewingRequests\Index as ViewingRequestsIndex;
+use App\Livewire\Public\RenterDashboard;
 use App\Livewire\Public\RenterPortal;
+use App\Livewire\Public\RenterTickets;
 use App\Livewire\Public\ShowroomIndex;
 use App\Livewire\Public\UnitShow;
+use App\Http\Controllers\RenterAccessController;
+use App\Http\Controllers\RenterTicketController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -20,6 +24,17 @@ use Illuminate\Support\Facades\Route;
 */
 Route::get('/', ShowroomIndex::class)->name('home');
 Route::get('/units/{unit}', UnitShow::class)->name('unit.show');
+Route::get('/renter/access', RenterPortal::class)->middleware('no-store')->name('renter.access');
+Route::post('/renter/access', [RenterAccessController::class, 'store'])->middleware('no-store')->name('renter.access.store');
+Route::get('/renter/dashboard', RenterDashboard::class)
+    ->middleware(['no-store', 'renter.session.active'])
+    ->name('renter.dashboard');
+Route::get('/renter/tickets', RenterTickets::class)
+    ->middleware(['no-store', 'renter.session.active'])
+    ->name('renter.tickets');
+Route::post('/renter/tickets', [RenterTicketController::class, 'store'])
+    ->middleware(['no-store', 'renter.session.active'])
+    ->name('renter.tickets.store');
 Route::get('/renter', RenterPortal::class)->middleware('no-store')->name('renter.portal');
 
 /*

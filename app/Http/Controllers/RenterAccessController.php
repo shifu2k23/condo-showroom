@@ -1,62 +1,26 @@
 <?php
 
-namespace App\Livewire\Public;
+namespace App\Http\Controllers;
 
 use App\Services\AuditLogger;
 use App\Services\RentalAccessCodeService;
 use App\Services\RenterAccessService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
-use Livewire\Attributes\Layout;
-use Livewire\Component;
 
-#[Layout('layouts.public')]
-class RenterPortal extends Component
+class RenterAccessController extends Controller
 {
-    private const LOGIN_LIMIT_PER_MINUTE = 5;
-
-    private const LOGIN_DECAY_SECONDS = 60;
-
-    public string $renter_name = '';
-
-    public string $id_type = 'PASSPORT';
-
-    public string $rental_code = '';
-
-    public ?string $statusMessage = null;
-
-    /**
-     * @var array<int, string>
-     */
-    public array $idTypeOptions = [
-        'PASSPORT',
-        'DRIVER_LICENSE',
-        'NATIONAL_ID',
-        'OTHER',
-    ];
-
-    public function mount(RenterAccessService $renterAccess): void
-    {
-        if (session()->has('status')) {
-            $this->statusMessage = (string) session('status');
-        }
-
-        if ($renterAccess->resolveRentalFromBrowserSession()) {
-            $this->redirectRoute('renter.dashboard', navigate: true);
-        }
-    }
-
-    public function login(
+    public function store(
+        Request $request,
         RenterAccessService $renterAccess,
         RentalAccessCodeService $codes,
         AuditLogger $auditLogger
-    ): void {
-        $this->resetErrorBag();
-        $this->statusMessage = null;
-
-        $validated = $this->validate([
+    ): RedirectResponse {
+        $validated = $request->validate([
             'renter_name' => ['required', 'string', 'max:255'],
-            'id_type' => ['required', 'in:'.implode(',', $this->idTypeOptions)],
+            'id_type' => ['required', 'in:PASSPORT,DRIVER_LICENSE,NATIONAL_ID,OTHER'],
             'rental_code' => ['required', 'string', 'max:32'],
         ]);
 
@@ -64,12 +28,7 @@ class RenterPortal extends Component
         $normalizedIdType = strtoupper($validated['id_type']);
         $normalizedRawCode = $codes->normalizeInput($validated['rental_code']);
 
-        $rateLimitKeys = $this->buildRateLimitKeys(
-            renterName: $normalizedRenterName,
-            idType: $normalizedIdType,
-            normalizedRawCode: $normalizedRawCode
-        );
-
+        $rateLimitKeys = $this->buildRateLimitKeys($request, $normalizedRenterName, $normalizedIdType, $normalizedRawCode);
         if ($this->isRateLimited($rateLimitKeys)) {
             $auditLogger->log(
                 action: 'RENTER_LOGIN_RATE_LIMITED',
@@ -81,21 +40,21 @@ class RenterPortal extends Component
                 ]
             );
 
-            $this->addError('rental_code', 'Too many login attempts. Please wait one minute and try again.');
-
-            return;
+            return back()
+                ->withErrors(['rental_code' => 'Too many login attempts. Please wait one minute and try again.'])
+                ->withInput($request->except('rental_code'));
         }
 
         try {
-            $matchingRental = $renterAccess->verifyCredentials(
+            $rental = $renterAccess->verifyCredentials(
                 renterName: $normalizedRenterName,
                 idType: $normalizedIdType,
                 rentalCode: $validated['rental_code']
             );
 
-            $issuedSession = $renterAccess->issueSession($matchingRental);
+            $issuedSession = $renterAccess->issueSession($rental);
             $renterAccess->establishBrowserSession(
-                rental: $matchingRental,
+                rental: $rental,
                 sessionModel: $issuedSession['model'],
                 token: $issuedSession['token'],
                 expiresAt: $issuedSession['expires_at']
@@ -105,16 +64,16 @@ class RenterPortal extends Component
 
             $auditLogger->log(
                 action: 'RENTER_LOGIN_SUCCESS',
-                unit: $matchingRental->unit,
+                unit: $rental->unit,
                 changes: [
-                    'rental_id' => $matchingRental->id,
-                    'code_last4' => $matchingRental->public_code_last4,
+                    'rental_id' => $rental->id,
+                    'code_last4' => $rental->public_code_last4,
                     'renter_session_id' => $issuedSession['model']->id,
                     'expires_at' => $issuedSession['expires_at']->toIso8601String(),
                 ]
             );
 
-            $this->redirectRoute('renter.dashboard', navigate: true);
+            return redirect()->route('renter.dashboard');
         } catch (ValidationException $exception) {
             $this->hitRateLimitKeys($rateLimitKeys);
 
@@ -132,34 +91,22 @@ class RenterPortal extends Component
         }
     }
 
-    public function render()
-    {
-        return view('livewire.public.renter-portal');
-    }
-
-    public function logout(RenterAccessService $renterAccess): void
-    {
-        $renterAccess->clearBrowserSession();
-
-        $this->statusMessage = 'You have been signed out of the renter portal.';
-    }
-
-    private function rateLimitKey(): string
-    {
-        $ip = request()->ip() ?? 'unknown';
-
-        return 'renter-login:'.hash('sha256', $ip);
-    }
-
     /**
      * @return array<int, string>
      */
-    private function buildRateLimitKeys(string $renterName, string $idType, ?string $normalizedRawCode): array
+    private function buildRateLimitKeys(Request $request, string $renterName, string $idType, ?string $normalizedRawCode): array
     {
         return [
-            $this->rateLimitKey(),
+            $this->ipRateLimitKey($request),
             $this->identityRateLimitKey($renterName, $idType, $normalizedRawCode),
         ];
+    }
+
+    private function ipRateLimitKey(Request $request): string
+    {
+        $ip = $request->ip() ?? 'unknown';
+
+        return 'renter-login:'.hash('sha256', $ip);
     }
 
     private function identityRateLimitKey(string $renterName, string $idType, ?string $normalizedRawCode): string
@@ -176,7 +123,7 @@ class RenterPortal extends Component
     private function isRateLimited(array $rateLimitKeys): bool
     {
         foreach ($rateLimitKeys as $key) {
-            if (RateLimiter::tooManyAttempts($key, self::LOGIN_LIMIT_PER_MINUTE)) {
+            if (RateLimiter::tooManyAttempts($key, 5)) {
                 return true;
             }
         }
@@ -190,7 +137,7 @@ class RenterPortal extends Component
     private function hitRateLimitKeys(array $rateLimitKeys): void
     {
         foreach ($rateLimitKeys as $key) {
-            RateLimiter::hit($key, self::LOGIN_DECAY_SECONDS);
+            RateLimiter::hit($key, 60);
         }
     }
 
@@ -228,7 +175,7 @@ class RenterPortal extends Component
         $limited = [];
 
         foreach ($rateLimitKeys as $key) {
-            if (RateLimiter::tooManyAttempts($key, self::LOGIN_LIMIT_PER_MINUTE)) {
+            if (RateLimiter::tooManyAttempts($key, 5)) {
                 $limited[] = str_contains($key, 'identity:') ? 'identity' : 'ip';
             }
         }

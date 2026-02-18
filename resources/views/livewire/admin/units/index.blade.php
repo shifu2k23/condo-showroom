@@ -1,83 +1,96 @@
-<div class="space-y-5 p-6">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-        <h1 class="text-2xl font-semibold">Units</h1>
-        <flux:button variant="primary" :href="route('admin.units.create')" wire:navigate>Add Unit</flux:button>
+<div class="space-y-7">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 class="text-2xl font-semibold tracking-tight text-slate-900">Units</h2>
+        <a href="{{ route('admin.units.create') }}" wire:navigate class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50">Add Unit</a>
     </div>
 
-    <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
-        <flux:input wire:model.live.debounce.350ms="search" icon="magnifying-glass" placeholder="Search units..." />
-        <flux:select wire:model.live="statusFilter">
-            <option value="">All statuses</option>
-            <option value="{{ \App\Models\Unit::STATUS_AVAILABLE }}">Available</option>
-            <option value="{{ \App\Models\Unit::STATUS_UNAVAILABLE }}">Unavailable</option>
-        </flux:select>
-        <flux:select wire:model.live="categoryFilter">
-            <option value="">All categories</option>
-            @foreach($categories as $category)
-                <option value="{{ $category->id }}">{{ $category->name }}</option>
-            @endforeach
-        </flux:select>
-        <label class="flex items-center gap-2 rounded-md border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">
-            <input type="checkbox" wire:model.live="showTrashed">
-            Include deleted
-        </label>
+    <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div class="grid grid-cols-1 gap-3 lg:grid-cols-4">
+            <div class="relative">
+                <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m21 21-4.35-4.35m1.35-5.15a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z"/></svg>
+                <input type="search" wire:model.live.debounce.350ms="search" placeholder="Search units..." aria-label="Search units" class="h-11 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+            </div>
+
+            <select wire:model.live="statusFilter" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                <option value="">All statuses</option>
+                <option value="{{ \App\Models\Unit::STATUS_AVAILABLE }}">Available</option>
+                <option value="{{ \App\Models\Unit::STATUS_UNAVAILABLE }}">Unavailable</option>
+            </select>
+
+            <select wire:model.live="categoryFilter" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                <option value="">All categories</option>
+                @foreach($categories as $category)
+                    <option value="{{ $category->id }}">{{ $category->name }}</option>
+                @endforeach
+            </select>
+
+            <label class="inline-flex min-h-11 items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700">
+                <input type="checkbox" wire:model.live="showTrashed" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/40">
+                Include deleted
+            </label>
+        </div>
     </div>
 
-    <div class="overflow-x-auto rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
-        <table class="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-700">
-            <thead class="bg-zinc-50 dark:bg-zinc-800">
-                <tr>
-                    <th class="px-4 py-3 text-left font-medium">Unit</th>
-                    <th class="px-4 py-3 text-left font-medium">Category</th>
-                    <th class="px-4 py-3 text-left font-medium">Status</th>
-                    <th class="px-4 py-3 text-left font-medium">Price</th>
-                    <th class="px-4 py-3 text-left font-medium">Deleted</th>
-                    <th class="px-4 py-3 text-right font-medium">Actions</th>
+    <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <table class="min-w-full text-sm">
+            <thead>
+                <tr class="border-b border-slate-200 text-left text-xs uppercase tracking-[0.14em] text-slate-500">
+                    <th scope="col" class="px-4 py-3 font-medium">Unit</th>
+                    <th scope="col" class="px-4 py-3 font-medium">Category</th>
+                    <th scope="col" class="px-4 py-3 font-medium">Status</th>
+                    <th scope="col" class="px-4 py-3 font-medium">Price</th>
+                    <th scope="col" class="px-4 py-3 font-medium">Deleted</th>
+                    <th scope="col" class="px-4 py-3 text-right font-medium">Actions</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+            <tbody>
                 @forelse($units as $unit)
-                    <tr>
+                    <tr class="border-b border-slate-200 text-slate-700 transition duration-150 hover:bg-slate-50">
                         <td class="px-4 py-3">
-                            <p class="font-medium">{{ $unit->name }}</p>
-                            <p class="text-xs text-zinc-500">{{ $unit->location ?: 'No location' }}</p>
+                            <p class="font-medium text-slate-900">{{ $unit->name }}</p>
+                            <p class="text-xs text-slate-500">{{ $unit->location ?: 'No location' }}</p>
                         </td>
-                        <td class="px-4 py-3">{{ $unit->category->name }}</td>
+                        <td class="px-4 py-3 text-slate-700">{{ $unit->category->name }}</td>
                         <td class="px-4 py-3">
-                            <span class="rounded-full px-2 py-1 text-xs font-semibold {{ $unit->status === \App\Models\Unit::STATUS_AVAILABLE ? 'bg-green-100 text-green-700' : 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200' }}">
+                            <span @class([
+                                'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold',
+                                'border-emerald-300 bg-emerald-50 text-emerald-700' => $unit->status === \App\Models\Unit::STATUS_AVAILABLE,
+                                'border-red-200 bg-red-50 text-red-700' => $unit->status !== \App\Models\Unit::STATUS_AVAILABLE,
+                            ])>
                                 {{ $unit->status }}
                             </span>
                         </td>
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3 text-slate-700">
                             @if($unit->price_display_mode === \App\Models\Unit::DISPLAY_MONTH && $unit->monthly_price_php)
                                 &#8369;{{ number_format($unit->monthly_price_php) }}/month
                             @elseif($unit->nightly_price_php)
                                 &#8369;{{ number_format($unit->nightly_price_php) }}/night
                             @else
-                                -
+                                <span class="text-slate-400">-</span>
                             @endif
                         </td>
-                        <td class="px-4 py-3">{{ $unit->deleted_at ? $unit->deleted_at->format('Y-m-d H:i') : '-' }}</td>
+                        <td class="px-4 py-3 text-slate-500">{{ $unit->deleted_at ? $unit->deleted_at->format('Y-m-d H:i') : '-' }}</td>
                         <td class="px-4 py-3">
-                            <div class="flex justify-end gap-2">
-                                <flux:button size="xs" variant="ghost" :href="route('admin.units.edit', $unit)" wire:navigate>Edit</flux:button>
+                            <div class="flex flex-wrap justify-end gap-2">
+                                <a href="{{ route('admin.units.edit', $unit) }}" wire:navigate class="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 transition hover:-translate-y-0.5 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white">Edit</a>
+
                                 @if(!$unit->trashed())
                                     @if($unit->status !== \App\Models\Unit::STATUS_AVAILABLE)
-                                        <flux:button size="xs" variant="ghost" wire:click="setAvailable({{ $unit->id }})">Set Available</flux:button>
+                                        <button type="button" wire:click="setAvailable({{ $unit->id }})" class="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 transition hover:-translate-y-0.5 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white">Set Available</button>
                                     @endif
                                     @if($unit->status !== \App\Models\Unit::STATUS_UNAVAILABLE)
-                                        <flux:button size="xs" variant="ghost" wire:click="setUnavailable({{ $unit->id }})">Set Unavailable</flux:button>
+                                        <button type="button" wire:click="setUnavailable({{ $unit->id }})" class="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 transition hover:-translate-y-0.5 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white">Set Unavailable</button>
                                     @endif
-                                    <flux:button size="xs" variant="danger" wire:click="deleteUnit({{ $unit->id }})" wire:confirm="Soft delete this unit?">Delete</flux:button>
+                                    <button type="button" wire:click="deleteUnit({{ $unit->id }})" wire:confirm="Soft delete this unit?" class="inline-flex min-h-10 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-semibold text-red-700 transition hover:-translate-y-0.5 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white">Delete</button>
                                 @else
-                                    <flux:button size="xs" variant="primary" wire:click="restoreUnit({{ $unit->id }})">Restore</flux:button>
+                                    <button type="button" wire:click="restoreUnit({{ $unit->id }})" class="inline-flex min-h-10 items-center justify-center rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:bg-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white">Restore</button>
                                 @endif
                             </div>
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-4 py-8 text-center text-zinc-500">No units found.</td>
+                        <td colspan="6" class="px-4 py-10 text-center text-sm text-slate-500">No units found.</td>
                     </tr>
                 @endforelse
             </tbody>

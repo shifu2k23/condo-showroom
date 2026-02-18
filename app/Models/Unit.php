@@ -97,6 +97,11 @@ class Unit extends Model
         return $this->hasMany(Rental::class);
     }
 
+    public function maintenanceTickets(): HasMany
+    {
+        return $this->hasMany(MaintenanceTicket::class);
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

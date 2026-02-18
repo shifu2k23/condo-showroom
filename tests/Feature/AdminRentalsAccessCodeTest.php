@@ -15,6 +15,7 @@ test('admin rental creation generates one-time readable code and stores only has
     Livewire::test(RentalForm::class)
         ->set('unit_id', (string) $unit->id)
         ->set('renter_name', 'Renter Sample')
+        ->set('contact_number', '+63 912 345 6789')
         ->set('id_type', 'PASSPORT')
         ->set('id_last4', '1234')
         ->set('starts_at', now()->addHour()->format('Y-m-d\TH:i'))
@@ -33,6 +34,7 @@ test('admin rental creation generates one-time readable code and stores only has
 
     $raw = preg_replace('/[^A-Z0-9]/', '', $issuedCode) ?? '';
     expect($rental->public_code_last4)->toBe(substr($raw, -4));
+    expect($rental->contact_number)->toBe('+63 912 345 6789');
 });
 
 test('issued rental code is shown once on admin listing', function () {

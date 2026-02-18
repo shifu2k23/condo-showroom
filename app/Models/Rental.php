@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Rental extends Model
 {
@@ -17,6 +19,7 @@ class Rental extends Model
     protected $fillable = [
         'unit_id',
         'renter_name',
+        'contact_number',
         'id_type',
         'id_last4',
         'public_code_hash',
@@ -46,5 +49,34 @@ class Rental extends Model
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function renterSessions(): HasMany
+    {
+        return $this->hasMany(RenterSession::class);
+    }
+
+    public function maintenanceTickets(): HasMany
+    {
+        return $this->hasMany(MaintenanceTicket::class);
+    }
+
+    public function isActiveNow(): bool
+    {
+        if ($this->status !== self::STATUS_ACTIVE) {
+            return false;
+        }
+
+        $now = CarbonImmutable::now();
+
+        return $now->betweenIncluded(
+            CarbonImmutable::instance($this->starts_at),
+            CarbonImmutable::instance($this->ends_at)
+        );
+    }
+
+    public function isExpired(): bool
+    {
+        return CarbonImmutable::now()->gt(CarbonImmutable::instance($this->ends_at));
     }
 }

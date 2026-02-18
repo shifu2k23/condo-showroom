@@ -1,277 +1,274 @@
-You are a senior Laravel engineer. Build an Airbnb-like property listing site using:
+You are a senior Laravel engineer. Extend an Airbnb-like Laravel + Livewire app with:
 - Laravel (latest stable)
 - Livewire (latest stable)
-- Laravel default authentication scaffolding already installed (login/register/password reset)
-- Testing framework: Pest
+- Laravel default auth exists for ADMIN only
+- Pest for tests
 
-This app has:
-1) PUBLIC “SHOWROOM” browsing of listings (no login button, no account UI for clients)
-2) HIDDEN ADMIN PANEL accessible only by typing /login (no public links)
-3) Admin manages listings (“units”), categories, media, pricing display options
-4) Clients can request a “book a viewing” schedule using a calendar UI (no client login)
-5) Pricing calculations for stays (nightly and monthly) with flexible display mode
-6) Real-time notifications to admin when viewing request is submitted
-7) Storage starts on local public disk but must be switchable to S3 by .env only
+Goal:
+1) PUBLIC showroom shows rooms/units and availability.
+2) When a unit is rented for a period, the public showroom must show the unit as “RENTED” for that period WITHOUT showing renter names.
+3) Renters must be able to access a Renter Dashboard WITHOUT creating an account and WITHOUT Gmail login.
+4) Renters must be able to submit maintenance tickets (cleaning, clogged sink/CR, etc.).
+5) Renter access must EXPIRE automatically when their rental period ends. After expiry, renter “login” must be unavailable and show a professional message.
 
 ABSOLUTE SECURITY REQUIREMENTS:
-- Never expose API keys or secrets in client-side code (Blade, Livewire rendered HTML, JS).
-- Store secrets only in .env and config files.
-- For real-time notifications (Pusher/WebSockets/etc.), keep keys server-side; do not embed secrets in JS. Use backend broadcasting config properly.
-- For storage (S3/Cloudinary), use backend-controlled uploads or signed upload URLs; never ship credentials to the browser.
-- Do not commit .env. Do not log secrets.
+- Never expose API keys/secrets client-side (Blade/Livewire/JS).
+- Store secrets only in .env/config.
+- If OCR/ID scanning is used, it MUST be server-side only. The frontend must not call OCR providers directly.
+- Do not store raw ID images publicly; store in private storage and serve via signed temporary URLs if needed.
+- Do not log secrets or sensitive ID numbers.
 
 ========================================================
-A) PUBLIC SHOWROOM REQUIREMENTS (NO LOGIN UI)
+A) RENTAL PERIOD + PUBLIC “RENTED” DISPLAY
 ========================================================
-Routes:
-- GET / : listings showroom
-- GET /units/{unit:slug_or_public_id} : listing detail page (or Livewire modal)
+Add concept of Rentals/Bookings that represent actual stays (not only viewing requests).
 
-Public Showroom features:
-- Search bar (by unit name/location keyword)
-- Category filter chips (default categories seedable; admin can CRUD)
-- Unit cards show:
-  - Cover image
-  - Name/title
-  - Category
-  - Price display (depends on unit setting: per night or per month) with PHP currency formatting (₱)
-  - Availability badge (Available / Unavailable)
-- Unit detail page shows:
-  - Image slideshow/gallery
-  - Description
-  - Pricing section:
-     - Display price in the unit’s chosen display mode (nightly or monthly)
-     - Price estimator widget:
-        - user selects check-in/check-out dates
-        - show computed nights + total price
-        - if stay length qualifies for monthly pricing, apply monthly price rule as configured
-  - “Request a Viewing” section:
-     - calendar date picker + time slot selector
-     - submits a viewing request (no client login)
-     - shows success message with requested date/time
+Public showroom:
+- A unit can be AVAILABLE or RENTED for specific dates.
+- The public UI must show:
+   - “RENTED” badge when current date is within an active rental period
+   - Optionally show “Rented until {date}” but NEVER show renter name, contact, or ID.
 
-IMPORTANT:
-- Public pages MUST NOT contain any login/register buttons or admin links.
-- Admin access is only via /login typed in the browser.
+Rules:
+- Availability for a given date range is computed from rentals:
+   - If any CONFIRMED rental overlaps requested range => not available.
+- Current “now” status on public card:
+   - If now overlaps an active CONFIRMED rental => badge RENTED
+   - Else AVAILABLE
 
 ========================================================
-B) ADMIN PANEL REQUIREMENTS
+B) RENTER ACCESS WITHOUT TRADITIONAL ACCOUNTS
+========================================================
+Renters do NOT create accounts and do NOT use email login.
+Instead, create a “Renter Access” mechanism based on:
+- Renter name + selected valid ID type + ID verification reference
+- After verification, renter receives an access method that does not require email/password.
+
+REQUIREMENT:
+- Provide a public page button “Renter Access” (NOT “Login” in the traditional sense).
+- Flow:
+  1) Renter enters:
+     - Full Name (string)
+     - Valid ID type (dropdown: Passport, Driver’s License, National ID, etc.)
+     - Valid ID number OR last 4 digits (choose privacy-friendly approach)
+     - Optional: Date of birth (optional)
+     - Optional: Rental reference code (recommended)
+  2) System verifies renter against an existing CONFIRMED rental record.
+  3) If match and rental is still active (today <= end_date), grant access to Renter Dashboard.
+  4) If rental has ended (today > end_date), deny access with professional message:
+     “Access unavailable. Our records show there is no active rental under these details. If you believe this is an error, please contact the front desk.”
+
+IMPORTANT SECURITY DESIGN:
+- Do NOT implement a “weak login” by name only.
+- Use at least TWO factors from:
+  - rental reference code (best)
+  - ID type + ID number (or partial) that matches rental record
+  - phone number (optional)
+- Do NOT expose renter PII in public routes.
+- Rate limit access attempts per IP.
+
+SESSION DESIGN:
+- After successful renter access, create a short-lived session (server-side) tied to:
+  - renter_access_token (random, stored hashed)
+  - rental_id
+  - expires_at = rental end_date (or earlier)
+- Renter dashboard requires this session/token.
+- Token invalid automatically after rental ends.
+
+========================================================
+C) VALID ID SCANNING / OCR (OPTIONAL, BUT ARCHITECTED SAFELY)
+========================================================
+If the system supports scanning ID credentials:
+- Provide admin flow to capture ID image at check-in (admin-auth only).
+- OCR verification must run server-side via queued job.
+- Store:
+  - id_type
+  - id_number_hash (never store raw number if possible)
+  - optional last4 for matching
+  - id_scan_file_path (private disk)
+- Renter access verification uses stored hashed/partial values.
+
+No API keys in JS/Livewire output. Ever.
+
+========================================================
+D) RENTER DASHBOARD
+========================================================
+Public route:
+- GET /renter/access (form)
+- POST /renter/access (validate & create session)
+- GET /renter/dashboard (requires renter session)
+- POST /renter/tickets (requires renter session)
+- GET /renter/tickets (requires renter session)
+
+Renter Dashboard content:
+1) Rented Unit details:
+   - Unit name
+   - Unit category/location
+   - Rental period start_date to end_date
+   - Status: Active / Expired
+2) Maintenance Tickets:
+   - List of their submitted tickets (status: OPEN/IN_PROGRESS/RESOLVED/CLOSED)
+   - Create ticket form:
+      - category: Cleaning, Plumbing, Electrical, Other
+      - subject
+      - description
+      - optional photo upload (store privately; show thumbnails via temporary signed URLs)
+3) Professional notice section:
+   - “For urgent concerns, contact front desk at …” (config-driven)
+
+Expired logic:
+- If rental expired, dashboard should block ticket creation and show:
+  “Your rental period has ended. Ticket submission is unavailable. Please contact the front desk if you need assistance.”
+
+========================================================
+E) ADMIN MANAGEMENT OF RENTALS + TICKETS
 ========================================================
 Admin routes (auth protected):
-- /admin (dashboard)
-- /admin/units (index/search/filter)
-- /admin/units/create
-- /admin/units/{unit}/edit
-- /admin/categories (CRUD)
-- /admin/viewing-requests (manage scheduled viewings)
-- /admin/logs (audit logs)
+- /admin/rentals
+- /admin/rentals/create
+- /admin/rentals/{rental}/edit
+- /admin/tickets
+- /admin/tickets/{ticket}
 
-Admin Dashboard UI sections (functional requirements):
-- KPIs: total units, available, unavailable, viewing requests upcoming, requests this week
-- Quick Actions: Add unit, Manage categories, View viewing requests
-- Recent Activity: last 10 log entries
-- Upcoming Viewings: next 10 scheduled viewing requests
+Admin Rental features:
+- Create CONFIRMED rental for a unit:
+   - unit_id
+   - renter_full_name
+   - renter_id_type
+   - renter_id_last4 or renter_id_hash
+   - rental_reference_code (unique, human-friendly)
+   - start_date, end_date
+- Prevent overlapping CONFIRMED rentals for same unit.
+- Ability to cancel rental (status CANCELLED) -> restores availability.
+- On confirm rental, unit becomes RENTED for that period (computed).
 
-Admin Units management:
-Unit fields:
-- name/title (required)
-- category_id (required)
-- location (string nullable)
-- description (text nullable)
-- status (AVAILABLE/UNAVAILABLE) default AVAILABLE
-- pricing:
-  - nightly_price_php (nullable integer)
-  - monthly_price_php (nullable integer)
-  - price_display_mode enum: NIGHT or MONTH (controls what the public card primarily shows)
-  - allow_estimator boolean default true
-- media: multiple images with sort_order
-- soft deletes enabled
-- created_by / updated_by tracked (optional but recommended)
+Admin Ticket features:
+- View tickets (filters by status, unit, date)
+- Update ticket status
+- Assign to staff (optional)
+- Add admin notes (internal only, never shown publicly)
 
-Admin can:
-- create/edit/soft-delete/restore units
-- upload images, remove images, reorder images
-- set availability status explicitly (no ambiguous toggles; use explicit actions)
-- set pricing display mode (per night or per month)
-- configure whether estimator uses nightly only, monthly only, or hybrid rule (see Pricing Rules)
-
-Admin Categories management:
-- Seed default categories (e.g., Condo, House, Studio, Room, Villa) and allow CRUD.
-- Prevent deletion if category has units.
-
-Admin Viewing Requests:
-- List requests with filters:
-  - date range, unit, status (PENDING/CONFIRMED/CANCELLED)
-- Ability to confirm/cancel requests
-- Show details: requester name, phone/email, requested datetime, unit, notes
+Real-time notifications (admin):
+- When a ticket is created, notify admins (broadcast + database notifications).
+- When a rental is created/confirmed, optionally notify admins.
 
 ========================================================
-C) CALENDAR + VIEWING REQUESTS (NO CLIENT LOGIN)
+F) DATABASE TABLES (MANDATORY)
 ========================================================
-Create ViewingRequest flow:
-Public submits:
-- unit_id
-- requested_start_at (datetime)
-- requested_end_at (datetime optional or fixed duration)
-- requester_name
-- requester_phone (optional)
-- requester_email (optional)
-- notes (optional)
+1) rentals:
+- id
+- public_id (ULID) unique indexed
+- unit_id fk indexed
+- status enum: PENDING/CONFIRMED/CANCELLED
+- renter_full_name (string)
+- renter_id_type (string)
+- renter_id_last4 (string nullable) OR renter_id_hash (string nullable)
+- renter_reference_code (string unique indexed) REQUIRED for renter access
+- start_date (date indexed)
+- end_date (date indexed)
+- created_by (admin user_id nullable indexed)
+- created_at/updated_at
 
-Validation:
-- requested_start_at must be in the future
-- prevent overlaps for the same unit in CONFIRMED state (and optionally PENDING)
-- rate-limit request submissions per IP
+2) renter_sessions (or renter_access_tokens):
+- id
+- rental_id fk indexed
+- token_hash (string) unique
+- expires_at (datetime indexed)
+- last_used_at (datetime nullable)
+- created_at
 
-========================================================
-D) PRICING ENGINE REQUIREMENTS
-========================================================
-Pricing display + calculation:
-- Store nightly_price_php and monthly_price_php as integers (₱ whole pesos; no formatted strings in DB).
-- Unit has price_display_mode:
-   - NIGHT: cards show nightly price
-   - MONTH: cards show monthly price
+3) maintenance_tickets:
+- id
+- rental_id fk indexed (tie ticket to a rental, not to public user)
+- unit_id fk indexed
+- status enum: OPEN/IN_PROGRESS/RESOLVED/CLOSED default OPEN
+- category enum: CLEANING/PLUMBING/ELECTRICAL/OTHER
+- subject string
+- description text
+- attachment_path nullable (private storage)
+- created_at/updated_at
 
-Estimator:
-- Input check-in/out dates
-- Compute number of nights
-- Compute total using rule:
-   1) If monthly_price_php exists AND stay length >= 30 nights:
-       - months = floor(nights / 30)
-       - remainder = nights % 30
-       - total = months * monthly_price + remainder * nightly_price (if nightly exists) else prorate monthly/30 (define rule)
-   2) Else:
-       - total = nights * nightly_price
+4) unit_images as existing
+5) audit_logs as existing:
+- log creation of rental, ticket creation, status changes
 
-Define and implement a clear rule when nightly is missing but monthly exists:
-- If nightly is null and monthly exists: nightly_rate = round(monthly_price / 30)
-Same for missing monthly but nightly exists: monthly_display optional computed? No—only if stored.
-
-Ensure currency formatting:
-- Use PHP formatting for ₱ with thousand separators (en-PH).
-
-========================================================
-E) REAL-TIME NOTIFICATIONS TO ADMIN (VIEWING REQUESTS)
-========================================================
-Requirement:
-- When a viewing request is created, notify admin in real time.
-
-Implementation options:
-- Laravel broadcasting events + WebSockets (Pusher-compatible) OR Laravel WebSockets (self-hosted).
-- Use Notification system:
-   - ViewingRequested notification sent to admins (users with is_admin)
-- Admin UI:
-   - Notification bell badge count
-   - “Recent notifications” dropdown
-   - Viewing Requests page highlights new requests
-
-SECURITY:
-- Do not expose broadcasting secrets client-side.
-- Use proper broadcasting config with public key only if required; keep secrets server-side.
+Indexes:
+- rentals(unit_id, start_date, end_date, status)
+- rentals(renter_reference_code)
+- tickets(rental_id, status, created_at)
 
 ========================================================
-F) STORAGE REQUIREMENTS (LOCAL DEV/DEMO + S3 READY)
+G) AVAILABILITY + OVERLAP CHECK (MANDATORY)
 ========================================================
-- Default FILESYSTEM_DISK=public in .env
-- Store only relative paths in DB: units/{unit_id}/{filename}.jpg
-- Render URLs via Storage::url($path)
-- Never store full URLs in DB
-- Document `php artisan storage:link` in README
-- Switching to S3 must only require .env change (FILESYSTEM_DISK=s3 + creds)
+Implement overlap detection for CONFIRMED rentals:
+Given new [start, end], overlap exists if:
+- existing.start <= new.end AND existing.end >= new.start
+
+Prevent creation/confirmation if overlap exists.
 
 ========================================================
-G) DATABASE / MODELS (MANDATORY)
+H) RENTER ACCESS VALIDATION (MANDATORY)
 ========================================================
-Tables:
-1) categories: id, name unique, timestamps
-2) units:
-   - id, public_id (ULID) unique indexed
-   - category_id fk indexed
-   - name indexed
-   - slug (optional unique) OR use public_id for routing
-   - location nullable
-   - description nullable
-   - status AVAILABLE/UNAVAILABLE indexed
-   - nightly_price_php nullable
-   - monthly_price_php nullable
-   - price_display_mode NIGHT/MONTH
-   - allow_estimator boolean
-   - created_by, updated_by nullable indexed
-   - timestamps, softDeletes
-3) unit_images:
-   - id, unit_id fk indexed, path (relative), sort_order, timestamps
-4) viewing_requests:
-   - id, unit_id fk indexed
-   - requester_name, requester_email nullable, requester_phone nullable
-   - requested_start_at indexed
-   - requested_end_at nullable
-   - status PENDING/CONFIRMED/CANCELLED indexed
-   - notes nullable
-   - created_at, updated_at
-5) audit_logs (or unit_inventory_logs):
-   - id, unit_id nullable, user_id nullable
-   - action (CREATE/UPDATE/SET_AVAILABLE/SET_UNAVAILABLE/IMAGE_ADD/IMAGE_REMOVE/VIEWING_REQUEST_CREATED/VIEWING_REQUEST_CONFIRMED/...)
-   - changes JSON nullable
-   - ip_address/user_agent nullable
-   - created_at
+On POST /renter/access:
+Input validation:
+- name required
+- id_type required
+- reference_code required
+- optional last4
 
-Relationships:
-- Category hasMany Units
-- Unit belongsTo Category
-- Unit hasMany UnitImages ordered by sort_order
-- Unit hasMany ViewingRequests
-- ViewingRequest belongsTo Unit
-- AuditLog belongsTo Unit and User
+Verification steps:
+1) Find rental by reference_code
+2) Compare normalized renter_full_name (case-insensitive, trimmed)
+3) Compare id_type
+4) If last4 stored, compare last4 if provided
+5) Ensure rental.status = CONFIRMED
+6) Ensure today <= end_date (active)
+If passes, create renter session token and redirect to /renter/dashboard
+If fails or expired, show professional denial message.
 
-========================================================
-H) AUTHORIZATION
-========================================================
-- Add users.is_admin boolean (or role)
-- Admin routes: middleware(['auth','verified','admin'])
-- Non-admin authenticated users get 403
-- Public routes never allow mutation endpoints
+Rate limit: 5 attempts per minute per IP.
 
 ========================================================
 I) LIVEWIRE COMPONENTS (SUGGESTED)
 ========================================================
 Public:
-- ShowroomIndex (search + category filters + units grid)
-- UnitShow (detail + gallery + estimator + viewing request form)
+- ShowroomIndex
+- UnitShow (gallery + availability)
+- RenterAccessForm
+- RenterDashboard
+- RenterTickets
 
 Admin:
-- AdminDashboard
-- AdminUnitsIndex
-- AdminUnitForm
-- AdminCategories
-- AdminViewingRequests
-- AdminLogs
-- AdminNotificationsBell (optional)
+- AdminRentalsIndex + AdminRentalForm
+- AdminTicketsIndex + AdminTicketShow
+- AdminNotificationsBell
 
 ========================================================
 J) TESTING (PEST)
 ========================================================
-Write Pest tests for:
-- Public showroom returns 200
-- No public login link exists on public pages (assert notContains '/login' link)
-- Admin routes redirect guest to login
-- Non-admin user gets 403 on /admin
-- Admin can CRUD categories and units
-- Storage saves relative image paths only
-- Viewing request validation (future date required)
-- Viewing request creates audit log and triggers notification (fake notifications)
-- Pricing calculator:
-  - nightly only
-  - monthly only (derive nightly from monthly/30)
-  - hybrid months + remainder
-- Concurrency safety for availability updates (transaction + lockForUpdate) if implemented
+Write tests for:
+- Public showroom shows RENTED when now overlaps CONFIRMED rental (no renter name visible)
+- Overlap detection prevents double-booking
+- Renter access:
+   - valid reference + name + id_type grants session
+   - expired rental denies with correct message
+   - wrong data denies
+   - rate limiting triggers
+- Renter dashboard requires renter session token
+- Ticket creation works for active rental; blocked for expired rental
+- Admin can view and update tickets
+- Notifications fired on ticket creation (Notification::fake)
 
 ========================================================
 K) README
 ========================================================
 Document:
-- Setup, migrate, seed
-- storage:link
-- Admin access: type /login then /admin
-- Real-time notifications setup notes (env vars)
-- Security warning: never expose API keys client-side; backend-only patterns
-Deliver clean code, passing tests, minimal but production-oriented.
+- How admin creates rentals and reference codes
+- How renter access works (no accounts)
+- Ticketing workflow
+- Security notes:
+   - no API keys client-side
+   - ID scan stored privately
+   - rate limiting enabled
+
+Deliver clean code with migrations, models, controllers/services, Livewire components, policies/middleware, and passing Pest tests.

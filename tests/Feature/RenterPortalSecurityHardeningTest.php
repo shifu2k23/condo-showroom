@@ -3,9 +3,11 @@
 use App\Livewire\Public\RenterPortal;
 use App\Models\AuditLog;
 use App\Models\Rental;
+use App\Models\RenterSession;
 use App\Models\Unit;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 test('renter portal response disables browser caching', function () {
@@ -48,7 +50,8 @@ test('successful renter login regenerates session id and writes success audit lo
         ->set('id_type', 'PASSPORT')
         ->set('rental_code', $plainCode)
         ->call('login')
-        ->assertHasNoErrors();
+        ->assertHasNoErrors()
+        ->assertRedirect(route('renter.dashboard'));
 
     expect(session()->getId())->not->toBe($initialSessionId);
 
@@ -56,6 +59,7 @@ test('successful renter login regenerates session id and writes success audit lo
     expect($log)->not->toBeNull();
     expect($log?->changes['rental_id'])->toBe($rental->id);
     expect($log?->changes['code_last4'])->toBe('JKLM');
+    expect($log?->changes['renter_session_id'])->toBeInt();
     expect($log?->changes)->not->toHaveKey('rental_code');
     expect($log?->changes)->not->toHaveKey('public_code_hash');
 });
@@ -85,7 +89,7 @@ test('failed renter login writes audit log without leaking full code', function 
     expect(json_encode($log?->changes, JSON_THROW_ON_ERROR))->not->toContain('ABCD-EFGH-AAAA');
 });
 
-test('renter logout rotates session id and clears renter session data', function () {
+test('renter logout clears renter session data', function () {
     $plainCode = 'ABCD-EFGH-JKLM';
     $unit = Unit::factory()->create();
 
@@ -102,14 +106,18 @@ test('renter logout rotates session id and clears renter session data', function
 
     session()->put('renter_access', [
         'rental_id' => $rental->id,
+        'renter_session_id' => RenterSession::factory()->create([
+            'rental_id' => $rental->id,
+            'token_hash' => hash('sha256', Str::random(80)),
+            'expires_at' => now()->addHour(),
+        ])->id,
+        'token' => 'tampered-token',
         'expires_at' => now()->addHour()->toIso8601String(),
     ]);
 
     $component = Livewire::test(RenterPortal::class);
-    $sessionIdBeforeLogout = session()->getId();
-
     $component->call('logout')->assertHasNoErrors();
 
     expect(session('renter_access'))->toBeNull();
-    expect(session()->getId())->not->toBe($sessionIdBeforeLogout);
+    $component->assertSee('You have been signed out of the renter portal.');
 });

@@ -7,35 +7,52 @@
 
         <title>{{ config('app.name', 'Condo Showroom') }}</title>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=inter:400,500,600&display=swap" rel="stylesheet" />
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-        <!-- Scripts -->
+        <style>
+            .scrollbar-hide::-webkit-scrollbar { display: none; }
+            .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        </style>
+
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @fluxStyles
     </head>
-    <body class="font-sans antialiased bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 min-h-screen flex flex-col">
-        <header class="border-b border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                <div class="flex items-center">
-                    <a href="/" class="text-xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                        <x-app-logo class="h-8 w-auto mr-2 inline-block text-indigo-600" />
-                        {{ config('app.name') }}
+    <body class="min-h-screen bg-slate-50 text-slate-900 antialiased [font-family:'Manrope',sans-serif]">
+        <div class="relative min-h-screen bg-[radial-gradient(circle_at_10%_0%,rgba(99,102,241,0.16)_0%,rgba(248,250,252,0)_35%),radial-gradient(circle_at_90%_10%,rgba(14,165,233,0.12)_0%,rgba(248,250,252,0)_40%)]">
+            <nav class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
+                <div class="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
+                    <a href="{{ route('home') }}" class="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40">
+                        <span class="h-8 w-8 rounded-lg bg-indigo-600" aria-hidden="true"></span>
+                        <span class="text-xl font-bold tracking-tight">Condo Luxe</span>
+                    </a>
+
+                    <div class="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex" aria-label="Primary">
+                        <a href="{{ route('home') }}" class="transition hover:text-indigo-600">Showrooms</a>
+                        <a href="{{ route('home') }}#category-filters" class="transition hover:text-indigo-600">Categories</a>
+                        <a href="#contact" class="transition hover:text-indigo-600">Contact</a>
+                    </div>
+
+                    <a
+                        href="{{ route('renter.access') }}"
+                        class="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/40"
+                    >
+                        Renter Access
                     </a>
                 </div>
-            </div>
-        </header>
+            </nav>
 
-        <main class="flex-grow">
-            {{ $slot }}
-        </main>
+            <main>
+                {{ $slot }}
+            </main>
 
-        <footer class="bg-zinc-50 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-700 mt-auto">
-            <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
-                &copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.
-            </div>
-        </footer>
+            <footer id="contact" class="mt-16 border-t border-slate-200 bg-white/70">
+                <div class="mx-auto max-w-7xl px-6 py-8 text-center text-sm text-slate-500">
+                    For urgent concerns, contact the front desk. &copy; {{ date('Y') }} {{ config('app.name') }}.
+                </div>
+            </footer>
+        </div>
 
         @fluxScripts
     </body>

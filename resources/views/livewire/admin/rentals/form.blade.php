@@ -1,41 +1,68 @@
-<div class="space-y-5 p-6">
-    <h1 class="text-2xl font-semibold">Create Rental</h1>
+<div class="space-y-7">
+    <div class="flex flex-col gap-2">
+        <h2 class="text-2xl font-semibold tracking-tight text-slate-900">Create Rental</h2>
+        <p class="text-sm text-slate-500">Generate secure renter access for a rental period.</p>
+    </div>
 
-    <form wire:submit.prevent="save" class="space-y-4 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900">
+    <form wire:submit.prevent="save" class="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <flux:select wire:model="unit_id" label="Unit (optional)">
-                <option value="">Select unit</option>
-                @foreach($units as $unit)
-                    <option value="{{ $unit->id }}">{{ $unit->name }}</option>
-                @endforeach
-            </flux:select>
-            @error('unit_id') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+            <div>
+                <label for="rental-unit" class="mb-2 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Unit (optional)</label>
+                <select id="rental-unit" wire:model="unit_id" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                    <option value="">Select unit</option>
+                    @foreach($units as $unit)
+                        <option value="{{ $unit->id }}">{{ $unit->name }}</option>
+                    @endforeach
+                </select>
+                @error('unit_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+            </div>
 
-            <flux:input wire:model="renter_name" label="Renter Name" required />
-            @error('renter_name') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+            <div>
+                <label for="rental-renter-name" class="mb-2 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Renter Name</label>
+                <input id="rental-renter-name" type="text" wire:model="renter_name" required class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                @error('renter_name') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+            </div>
 
-            <flux:select wire:model="id_type" label="ID Type" required>
-                @foreach($idTypeOptions as $option)
-                    <option value="{{ $option }}">{{ str_replace('_', ' ', $option) }}</option>
-                @endforeach
-            </flux:select>
-            @error('id_type') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+            <div>
+                <label for="rental-contact-number" class="mb-2 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Contact Number (optional)</label>
+                <input id="rental-contact-number" type="text" wire:model="contact_number" placeholder="+63 912 345 6789" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                @error('contact_number') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+            </div>
 
-            <flux:input wire:model="id_last4" label="ID Last 4 (optional)" maxlength="4" />
-            @error('id_last4') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+            <div>
+                <label for="rental-id-type" class="mb-2 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">ID Type</label>
+                <select id="rental-id-type" wire:model="id_type" required class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                    @foreach($idTypeOptions as $option)
+                        <option value="{{ $option }}">{{ str_replace('_', ' ', $option) }}</option>
+                    @endforeach
+                </select>
+                @error('id_type') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+            </div>
 
-            <flux:input type="datetime-local" wire:model="starts_at" label="Starts At" required />
-            @error('starts_at') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+            <div>
+                <label for="rental-id-last4" class="mb-2 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">ID Last 4 (optional)</label>
+                <input id="rental-id-last4" type="text" wire:model="id_last4" maxlength="4" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                @error('id_last4') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+            </div>
 
-            <flux:input type="datetime-local" wire:model="ends_at" label="Ends At" required />
-            @error('ends_at') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+            <div>
+                <label for="rental-starts-at" class="mb-2 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Starts At</label>
+                <input id="rental-starts-at" type="datetime-local" wire:model="starts_at" required class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                @error('starts_at') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+            </div>
+
+            <div>
+                <label for="rental-ends-at" class="mb-2 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Ends At</label>
+                <input id="rental-ends-at" type="datetime-local" wire:model="ends_at" required class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                @error('ends_at') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+            </div>
         </div>
 
-        <p class="text-xs text-zinc-500">A secure rental code will be generated and shown once after save.</p>
+        <p class="text-sm text-slate-500">A secure rental code will be generated and shown once after save.</p>
 
-        <div class="flex justify-end gap-2">
-            <flux:button variant="ghost" :href="route('admin.rentals.index')" wire:navigate>Cancel</flux:button>
-            <flux:button type="submit" variant="primary">Create Rental</flux:button>
+        <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <a href="{{ route('admin.rentals.index') }}" wire:navigate class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:-translate-y-0.5 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50">Cancel</a>
+            <button type="submit" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50">Create Rental</button>
         </div>
     </form>
 </div>

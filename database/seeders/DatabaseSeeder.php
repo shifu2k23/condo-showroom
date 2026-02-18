@@ -18,17 +18,17 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
         ]);
 
-        User::firstOrCreate(
-            ['email' => 'admin@example.com'],
+        User::updateOrCreate(
+            ['email' => 'benregidor@example.com'],
             [
-                'name' => 'Admin User',
-                'password' => Hash::make('password'),
+                'name' => 'benregidor',
+                'password' => Hash::make('admin123'),
                 'email_verified_at' => now(),
                 'is_admin' => true,
             ]
         );
 
-        User::firstOrCreate(
+        User::updateOrCreate(
             ['email' => 'test@example.com'],
             [
                 'name' => 'Test User',

@@ -1,60 +1,75 @@
-<div class="space-y-5 p-6">
-    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <h1 class="text-2xl font-semibold">Rentals</h1>
-        <flux:button :href="route('admin.rentals.create')" wire:navigate>Add Rental</flux:button>
+<div class="space-y-7">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 class="text-2xl font-semibold tracking-tight text-slate-900">Rentals</h2>
+        <a href="{{ route('admin.rentals.create') }}" wire:navigate class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50">Add Rental</a>
     </div>
 
     @if ($issuedRentalCode)
-        <div class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-100">
-            <p class="text-sm font-semibold">Renter Access Code (shown once)</p>
-            <p class="mt-1 font-mono text-2xl tracking-wider">{{ $issuedRentalCode }}</p>
-            <p class="mt-2 text-xs">Print or hand this to the renter now. It cannot be recovered later.</p>
+        <div class="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 text-indigo-900">
+            <p class="text-sm font-semibold uppercase tracking-[0.14em]">Renter Access Code (shown once)</p>
+            <p class="mt-2 font-mono text-3xl tracking-[0.22em]">{{ $issuedRentalCode }}</p>
+            <p class="mt-2 text-sm text-indigo-700">Print or hand this to the renter now. It cannot be recovered later.</p>
         </div>
     @endif
 
-    <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <flux:input wire:model.live.debounce.350ms="search" icon="magnifying-glass" placeholder="Search renter name..." />
-        <flux:select wire:model.live="statusFilter">
-            <option value="">All statuses</option>
-            <option value="{{ \App\Models\Rental::STATUS_ACTIVE }}">Active</option>
-            <option value="{{ \App\Models\Rental::STATUS_CANCELLED }}">Cancelled</option>
-        </flux:select>
-        <flux:select wire:model.live="unitFilter">
-            <option value="">All units</option>
-            @foreach($units as $unit)
-                <option value="{{ $unit->id }}">{{ $unit->name }}</option>
-            @endforeach
-        </flux:select>
+    <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div class="grid grid-cols-1 gap-3 lg:grid-cols-3">
+            <div class="relative">
+                <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m21 21-4.35-4.35m1.35-5.15a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z"/></svg>
+                <input type="search" wire:model.live.debounce.350ms="search" placeholder="Search renter name..." aria-label="Search renter" class="h-11 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+            </div>
+
+            <select wire:model.live="statusFilter" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                <option value="">All statuses</option>
+                <option value="{{ \App\Models\Rental::STATUS_ACTIVE }}">Active</option>
+                <option value="{{ \App\Models\Rental::STATUS_CANCELLED }}">Cancelled</option>
+            </select>
+
+            <select wire:model.live="unitFilter" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                <option value="">All units</option>
+                @foreach($units as $unit)
+                    <option value="{{ $unit->id }}">{{ $unit->name }}</option>
+                @endforeach
+            </select>
+        </div>
     </div>
 
-    <div class="overflow-x-auto rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
-        <table class="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-700">
-            <thead class="bg-zinc-50 dark:bg-zinc-800">
-                <tr>
-                    <th class="px-4 py-3 text-left font-medium">Renter</th>
-                    <th class="px-4 py-3 text-left font-medium">Unit</th>
-                    <th class="px-4 py-3 text-left font-medium">ID</th>
-                    <th class="px-4 py-3 text-left font-medium">Code Last4</th>
-                    <th class="px-4 py-3 text-left font-medium">Window</th>
-                    <th class="px-4 py-3 text-left font-medium">Status</th>
+    <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <table class="min-w-full text-sm">
+            <thead>
+                <tr class="border-b border-slate-200 text-left text-xs uppercase tracking-[0.14em] text-slate-500">
+                    <th scope="col" class="px-4 py-3 font-medium">Renter</th>
+                    <th scope="col" class="px-4 py-3 font-medium">Contact</th>
+                    <th scope="col" class="px-4 py-3 font-medium">Unit</th>
+                    <th scope="col" class="px-4 py-3 font-medium">ID</th>
+                    <th scope="col" class="px-4 py-3 font-medium">Code Last4</th>
+                    <th scope="col" class="px-4 py-3 font-medium">Window</th>
+                    <th scope="col" class="px-4 py-3 font-medium">Status</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+            <tbody>
                 @forelse($rentals as $rental)
-                    <tr>
-                        <td class="px-4 py-3 font-medium">{{ $rental->renter_name }}</td>
-                        <td class="px-4 py-3">{{ $rental->unit?->name ?? '-' }}</td>
-                        <td class="px-4 py-3 text-xs">{{ $rental->id_type }} @if($rental->id_last4) ({{ $rental->id_last4 }}) @endif</td>
-                        <td class="px-4 py-3 font-mono">{{ $rental->public_code_last4 ?? '-' }}</td>
+                    <tr class="border-b border-slate-200 text-slate-700 transition duration-150 hover:bg-slate-50">
+                        <td class="px-4 py-3 font-medium text-slate-900">{{ $rental->renter_name }}</td>
+                        <td class="px-4 py-3 text-slate-700">{{ $rental->contact_number ?: '-' }}</td>
+                        <td class="px-4 py-3 text-slate-700">{{ $rental->unit?->name ?? '-' }}</td>
+                        <td class="px-4 py-3 text-xs text-slate-500">{{ $rental->id_type }} @if($rental->id_last4) ({{ $rental->id_last4 }}) @endif</td>
+                        <td class="px-4 py-3 font-mono text-slate-700">{{ $rental->public_code_last4 ?? '-' }}</td>
                         <td class="px-4 py-3 text-xs">
                             <div>{{ $rental->starts_at?->format('Y-m-d H:i') }}</div>
-                            <div class="text-zinc-500">to {{ $rental->ends_at?->format('Y-m-d H:i') }}</div>
+                            <div class="text-slate-500">to {{ $rental->ends_at?->format('Y-m-d H:i') }}</div>
                         </td>
-                        <td class="px-4 py-3">{{ $rental->status }}</td>
+                        <td class="px-4 py-3">
+                            @if($rental->status === \App\Models\Rental::STATUS_ACTIVE)
+                                <span class="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">ACTIVE</span>
+                            @else
+                                <span class="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">CANCELLED</span>
+                            @endif
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-4 py-8 text-center text-zinc-500">No rentals found.</td>
+                        <td colspan="7" class="px-4 py-10 text-center text-sm text-slate-500">No rentals found.</td>
                     </tr>
                 @endforelse
             </tbody>

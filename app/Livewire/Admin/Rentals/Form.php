@@ -21,6 +21,8 @@ class Form extends Component
 
     public string $renter_name = '';
 
+    public ?string $contact_number = null;
+
     public string $id_type = 'PASSPORT';
 
     public ?string $id_last4 = null;
@@ -54,6 +56,7 @@ class Form extends Component
         $validated = $this->validate([
             'unit_id' => ['nullable', 'integer', 'exists:units,id'],
             'renter_name' => ['required', 'string', 'max:255'],
+            'contact_number' => ['nullable', 'string', 'max:30', 'regex:/^[0-9+\\-()\\s]{7,20}$/'],
             'id_type' => ['required', 'in:'.implode(',', $this->idTypeOptions)],
             'id_last4' => ['nullable', 'regex:/^[A-Za-z0-9]{4}$/'],
             'starts_at' => ['required', 'date'],
@@ -73,6 +76,9 @@ class Form extends Component
             return Rental::create([
                 'unit_id' => $validated['unit_id'] !== null ? (int) $validated['unit_id'] : null,
                 'renter_name' => trim($validated['renter_name']),
+                'contact_number' => isset($validated['contact_number']) && $validated['contact_number'] !== null
+                    ? trim($validated['contact_number'])
+                    : null,
                 'id_type' => strtoupper($validated['id_type']),
                 'id_last4' => isset($validated['id_last4']) && $validated['id_last4'] !== null
                     ? strtoupper($validated['id_last4'])

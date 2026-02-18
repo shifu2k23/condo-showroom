@@ -2,6 +2,7 @@
 
 use App\Livewire\Public\RenterPortal;
 use App\Models\Rental;
+use App\Models\RenterSession;
 use App\Models\Unit;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
@@ -30,9 +31,15 @@ test('correct rental code grants renter portal access', function () {
         ->set('rental_code', $plainCode)
         ->call('login')
         ->assertHasNoErrors()
-        ->assertSee('Access verified');
+        ->assertRedirect(route('renter.dashboard'));
 
     expect(session('renter_access.rental_id'))->toBe($rental->id);
+    expect(session('renter_access.token'))->toBeString()->not->toBe('');
+    expect(session('renter_access.renter_session_id'))->toBeInt();
+
+    $session = RenterSession::query()->find(session('renter_access.renter_session_id'));
+    expect($session)->not->toBeNull();
+    expect($session?->rental_id)->toBe($rental->id);
 });
 
 test('wrong rental code is blocked', function () {
@@ -71,7 +78,7 @@ test('expired rental code is blocked with professional message', function () {
         ->set('rental_code', 'WXYZ-BCDE-FGHJ')
         ->call('login')
         ->assertHasErrors(['rental_code'])
-        ->assertSee('This rental access has ended.');
+        ->assertSee('Access unavailable. Our records show there is no active rental under these details.');
 });
 
 test('renter login is rate limited to five attempts per minute per ip', function () {
