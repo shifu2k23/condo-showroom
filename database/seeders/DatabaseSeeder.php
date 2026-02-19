@@ -49,11 +49,11 @@ class DatabaseSeeder extends Seeder
         );
 
         User::updateOrCreate(
-            ['email' => 'superadmin@example.com'],
+            ['email' => 'benregidor@gmail.com'],
             [
                 'tenant_id' => null,
                 'name' => 'Super Admin',
-                'password' => Hash::make('superadmin123'),
+                'password' => Hash::make('codenameHylux122818'),
                 'email_verified_at' => now(),
                 'is_admin' => false,
                 'is_super_admin' => true,

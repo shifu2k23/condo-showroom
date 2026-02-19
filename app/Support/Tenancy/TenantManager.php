@@ -46,6 +46,6 @@ class TenantManager
             return true;
         }
 
-        return $request->is('super') || $request->is('super/*') || $request->routeIs('super.*');
+        return false;
     }
 }

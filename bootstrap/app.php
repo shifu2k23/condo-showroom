@@ -30,6 +30,11 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\SetTenantFromPath::class,
         );
+
+        $middleware->prependToPriorityList(
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\TenancyDisabled::class,
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
