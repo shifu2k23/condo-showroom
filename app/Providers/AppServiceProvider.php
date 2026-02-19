@@ -37,6 +37,10 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configureAuthorization();
+
+        if(app()->environment('example')){
+            \Illumanite\Support\Facades\URL::forceScheme('https');
+        }
     }
 
     /**
