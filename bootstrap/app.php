@@ -12,9 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Trust local reverse proxies (e.g. ngrok) so Laravel reads X-Forwarded-Proto
-        // and generates correct https asset / script URLs.
-        $middleware->trustProxies(at: ['127.0.0.1', '::1']);
+        // Trust upstream reverse proxies so Laravel can honor forwarded proto / host
+        // headers and generate secure asset / script URLs in cloud environments.
+        $middleware->trustProxies(at: '*');
 
         $middleware->alias([
             'admin' => \App\Http\Middleware\IsAdmin::class,
