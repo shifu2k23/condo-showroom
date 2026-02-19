@@ -73,3 +73,27 @@ test('correct password must be provided to delete account', function () {
 
     expect($user->fresh())->not->toBeNull();
 });
+
+test('admin does not see delete account section on profile settings', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin);
+
+    $this->get(route('profile.edit'))
+        ->assertOk()
+        ->assertDontSee('Delete account');
+});
+
+test('admin cannot delete their account from settings action', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin);
+
+    $response = Livewire::test('pages::settings.delete-user-form')
+        ->set('password', 'password')
+        ->call('deleteUser');
+
+    $response->assertHasErrors(['password']);
+
+    expect($admin->fresh())->not->toBeNull();
+});

@@ -15,6 +15,12 @@ new class extends Component {
      */
     public function deleteUser(Logout $logout): void
     {
+        if ((bool) Auth::user()?->is_admin) {
+            $this->addError('password', __('Admin accounts cannot be deleted from profile settings.'));
+
+            return;
+        }
+
         $this->validate([
             'password' => $this->currentPasswordRules(),
         ]);
