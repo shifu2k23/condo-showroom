@@ -61,7 +61,7 @@ test('non-admin cannot generate ai description', function () {
     addStoredUnitImage($unit);
 
     $this->actingAs($nonAdmin)
-        ->get(route('admin.units.edit', $unit))
+        ->get(route('admin.units.edit', ['unit' => $unit]))
         ->assertForbidden();
 });
 

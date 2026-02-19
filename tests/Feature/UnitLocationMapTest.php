@@ -78,7 +78,7 @@ test('public unit detail includes google maps urls when coordinates exist', func
         'longitude' => '120.9800000',
     ]);
 
-    $this->get(route('unit.show', $unit))
+    $this->get(route('unit.show', ['unit' => $unit->public_id]))
         ->assertOk()
         ->assertSee('Open in Google Maps')
         ->assertSee($unit->googleMapsUrl(), false)
@@ -91,7 +91,7 @@ test('public unit detail shows location not available when coordinates are missi
         'longitude' => null,
     ]);
 
-    $this->get(route('unit.show', $unit))
+    $this->get(route('unit.show', ['unit' => $unit->public_id]))
         ->assertOk()
         ->assertSee('Location not available.')
         ->assertDontSee('Open in Google Maps');
@@ -102,7 +102,7 @@ test('public html does not expose secret-like strings', function () {
 
     $responses = [
         $this->get(route('home')),
-        $this->get(route('unit.show', $unit)),
+        $this->get(route('unit.show', ['unit' => $unit->public_id])),
     ];
 
     $secretNeedles = [

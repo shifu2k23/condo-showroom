@@ -3,8 +3,10 @@
 namespace Database\Factories;
 
 use App\Models\Category;
+use App\Models\Tenant;
 use App\Models\Unit;
 use App\Models\User;
+use App\Support\Tenancy\TenantManager;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -17,9 +19,11 @@ class UnitFactory extends Factory
 
     public function definition(): array
     {
+        $tenantId = app(TenantManager::class)->currentId();
         $name = fake()->unique()->words(3, true);
 
         return [
+            'tenant_id' => $tenantId ?? Tenant::factory(),
             'public_id' => (string) Str::ulid(),
             'category_id' => Category::factory(),
             'name' => Str::title($name),

@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\AuditLogs;
 use App\Models\AuditLog;
 use App\Models\Unit;
 use App\Models\User;
+use App\Support\Tenancy\TenantManager;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -35,6 +36,8 @@ class Index extends Component
 
     public function render()
     {
+        $tenantId = app(TenantManager::class)->currentId();
+
         $query = AuditLog::query()
             ->with(['unit', 'user'])
             ->when($this->search !== '', function ($builder): void {
@@ -53,7 +56,11 @@ class Index extends Component
             'logs' => $query->paginate(20),
             'actions' => AuditLog::query()->distinct()->orderBy('action')->pluck('action'),
             'units' => Unit::query()->orderBy('name')->get(['id', 'name']),
-            'users' => User::query()->orderBy('name')->get(['id', 'name']),
+            'users' => User::query()
+                ->where('tenant_id', $tenantId)
+                ->where('is_super_admin', false)
+                ->orderBy('name')
+                ->get(['id', 'name']),
         ]);
     }
 }

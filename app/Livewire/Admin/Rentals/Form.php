@@ -6,10 +6,12 @@ use App\Models\Rental;
 use App\Models\Unit;
 use App\Services\AuditLogger;
 use App\Services\RentalAccessCodeService;
+use App\Support\Tenancy\TenantManager;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -89,7 +91,14 @@ class Form extends Component
         }
 
         $validated = $this->validate([
-            'unit_id' => ['nullable', 'integer', 'exists:units,id'],
+            'unit_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('units', 'id')->where(
+                    'tenant_id',
+                    app(TenantManager::class)->currentId()
+                ),
+            ],
             'renter_name' => ['required', 'string', 'max:255'],
             'contact_number' => ['nullable', 'string', 'max:30', 'regex:/^[0-9+\\-()\\s]{7,20}$/'],
             'id_type' => ['required', 'in:'.implode(',', $this->idTypeOptions)],

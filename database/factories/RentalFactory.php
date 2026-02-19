@@ -3,8 +3,10 @@
 namespace Database\Factories;
 
 use App\Models\Rental;
+use App\Models\Tenant;
 use App\Models\Unit;
 use App\Models\User;
+use App\Support\Tenancy\TenantManager;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 
@@ -17,9 +19,11 @@ class RentalFactory extends Factory
 
     public function definition(): array
     {
+        $tenantId = app(TenantManager::class)->currentId();
         $plainCode = 'ABCD-EFGH-JKLM';
 
         return [
+            'tenant_id' => $tenantId ?? Tenant::factory(),
             'unit_id' => Unit::factory(),
             'renter_name' => fake()->name(),
             'id_type' => 'PASSPORT',

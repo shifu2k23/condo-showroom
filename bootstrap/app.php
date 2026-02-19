@@ -17,10 +17,19 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
 
         $middleware->alias([
-            'admin' => \App\Http\Middleware\IsAdmin::class,
+            'auth' => \App\Http\Middleware\Authenticate::class,
+            'tenant' => \App\Http\Middleware\SetTenantFromPath::class,
+            'tenancy.disabled' => \App\Http\Middleware\TenancyDisabled::class,
+            'admin' => \App\Http\Middleware\EnsureAdmin::class,
+            'super.admin' => \App\Http\Middleware\EnsureSuperAdmin::class,
             'no-store' => \App\Http\Middleware\PreventCachingSensitivePages::class,
             'renter.session.active' => \App\Http\Middleware\EnsureRenterSessionIsActive::class,
         ]);
+
+        $middleware->prependToPriorityList(
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\SetTenantFromPath::class,
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

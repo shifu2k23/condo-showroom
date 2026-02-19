@@ -9,26 +9,26 @@ class CategoryPolicy
 {
     public function viewAny(User $user): bool
     {
-        return (bool) $user->is_admin;
+        return (bool) $user->is_admin && ! $user->is_super_admin;
     }
 
     public function view(User $user, Category $category): bool
     {
-        return (bool) $user->is_admin;
+        return (bool) $user->is_admin && ! $user->is_super_admin;
     }
 
     public function create(User $user): bool
     {
-        return (bool) $user->is_admin;
+        return (bool) $user->is_admin && ! $user->is_super_admin;
     }
 
     public function update(User $user, Category $category): bool
     {
-        return (bool) $user->is_admin;
+        return (bool) $user->is_admin && ! $user->is_super_admin;
     }
 
     public function delete(User $user, Category $category): bool
     {
-        return (bool) $user->is_admin;
+        return (bool) $user->is_admin && ! $user->is_super_admin;
     }
 }

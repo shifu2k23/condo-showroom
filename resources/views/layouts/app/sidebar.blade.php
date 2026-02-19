@@ -35,7 +35,7 @@
         <script>
             (() => {
                 const applySettingsAppearance = () => {
-                    const isSettingsPath = window.location.pathname.startsWith('/settings');
+                    const isSettingsPath = window.location.pathname.includes('/settings');
 
                     if (!isSettingsPath) {
                         return;

@@ -1,74 +1,225 @@
-# Leaflet Unit Location Pinning (Condo Showroom)
+# Path-Based Multi-Tenancy Roadmap (Single DB)
 
-## Overview
-This project uses **Leaflet + OpenStreetMap tiles** to support:
-- Admin unit location pinning (create/edit)
-- Public read-only map display on unit detail pages
-- Google Maps and Directions links generated from stored coordinates
+This roadmap is for introducing path-based tenancy with minimal churn in the existing Laravel + Livewire app.
 
-No map API keys are used for this integration.
+## Approach
+Add tenancy as an infrastructure layer first (tenant context, middleware, model scoping), then refactor routes, then migrate data isolation (including media), and finally add super-admin tenant management and tests.
 
-## What Was Added
-- `units.latitude` (`decimal(10,7)`, nullable)
-- `units.longitude` (`decimal(10,7)`, nullable)
-- `units.address_text` (`string`, nullable)
-- Composite index on `latitude, longitude`
+## Scope
+- In:
+  - `/t/{tenant:slug}` routing for public and admin tenant pages
+  - Global tenant isolation in Eloquent
+  - Tenant-safe media delivery
+  - Super-admin tenant management at `/super/tenants`
+  - Backfill command and isolation tests
+- Out:
+  - Rebuilding existing modules
+  - Splitting into multiple databases
+  - Major UI redesign outside login + super-admin tenant pages
 
-`App\Models\Unit` now includes:
-- `hasLocation(): bool`
-- `googleMapsUrl(): string`
-- `googleDirectionsUrl(): string`
+## Migration Order (Safe Rollout Sequence)
 
-## Admin Pin Workflow
-In Admin Unit Create/Edit:
-1. Open the **Location Pin** card.
-2. Click anywhere on the map to drop or move the marker.
-3. Latitude/Longitude fields are populated automatically.
-4. Optional:
-   - **Use my current location** (browser geolocation)
-   - **Clear pin**
-5. Save the unit.
+### M01: Create tenants table
+Create `database/migrations/2026_.._create_tenants_table.php`:
+- `id`, `name`, `slug` unique
+- `status` (ACTIVE/TRIAL/DISABLED), default TRIAL
+- `trial_ends_at` nullable
+- `created_by` nullable indexed (no hard FK required initially)
+- timestamps
 
-Validation rules (create + edit):
-- `latitude`: required, numeric, between `-90` and `90`
-- `longitude`: required, numeric, between `-180` and `180`
+### M02: Add tenant columns as nullable + indexes
+Create `database/migrations/2026_.._add_tenant_id_to_existing_tables.php`:
+- add nullable `tenant_id` + index to:
+  - `users`, `categories`, `units`, `unit_images`, `viewing_requests`, `rentals`, `maintenance_tickets`, `audit_logs`, `analytics_snapshots`, `renter_sessions`
+- add `users.is_super_admin` default false indexed
+- add `unit_images.public_id` (char(26) ULID) nullable unique
+- add `unit_images.path` nullable (keep existing image field during transition)
 
-## Public Unit Detail Behavior
-- If coordinates exist:
-  - Shows a read-only Leaflet map with marker
-  - Shows buttons:
-    - **Open in Google Maps**
-    - **Get Directions**
-- If coordinates are missing:
-  - Shows: **Location not available.**
+### M03: Add compound indexes for tenant queries
+Create `database/migrations/2026_.._add_tenant_compound_indexes.php`:
+- `units`: `(tenant_id, category_id, status, deleted_at)`
+- `categories`: `(tenant_id, name)`
+- `unit_images`: `(tenant_id, unit_id)`
+- `rentals`: `(tenant_id, unit_id, starts_at, ends_at)`
+- `viewing_requests`: `(tenant_id, unit_id, requested_start_at, status)`
 
-## Local Setup
-1. Install PHP and Node dependencies:
-```bash
-composer install
-npm install
-```
-2. Run migrations:
-```bash
-php artisan migrate
-```
-3. Start dev stack:
-```bash
-php artisan serve
-npm run dev
-```
+### M04: Backfill existing data (command, not migration)
+Run `php artisan tenancy:bootstrap-default`:
+- create default tenant (slug `default`) if missing
+- set `tenant_id` for all existing tenant-owned rows where null
+- generate `unit_images.public_id` for null rows
+- map legacy image field to `path` if needed
+- optionally create initial super-admin if missing
 
-## Test Commands
-```bash
-php artisan test tests/Feature/AdminUnitsCrudTest.php
-php artisan test tests/Feature/UnitLocationMapTest.php
-php artisan test
-```
+### M05: Enforce tenant constraints
+Create `database/migrations/2026_.._enforce_tenant_id_not_null_and_fks.php`:
+- set tenant-owned tables `tenant_id` NOT NULL
+- add FKs to `tenants(id)` with `cascadeOnUpdate()` and appropriate delete behavior
+- keep `users.tenant_id` nullable for super-admin accounts
+- set `unit_images.public_id` NOT NULL unique
+- set `unit_images.path` NOT NULL
 
-## Security Notes
-- Do not expose provider tokens in Blade/Livewire/JS.
-- Current map tiles use OpenStreetMap and require no key.
-- If switching to a keyed provider later:
-  - Keep secrets in `.env`
-  - Do not render secrets in HTML/JS responses
-  - Prefer server-side proxy patterns when possible
+## File-Level Implementation Notes
+
+## 1) Migrations and backfill
+Files:
+- `database/migrations/2026_.._create_tenants_table.php`
+- `database/migrations/2026_.._add_tenant_id_to_existing_tables.php`
+- `database/migrations/2026_.._add_tenant_compound_indexes.php`
+- `database/migrations/2026_.._enforce_tenant_id_not_null_and_fks.php`
+- `database/seeders/` (optional tenant seeder helper)
+- `app/Console/Commands/TenancyBootstrapDefault.php`
+
+Notes:
+- Keep schema migrations DDL-only where possible.
+- Run data backfill via command between M02 and M05.
+
+## 2) Tenant context (CurrentTenant + TenantManager + middleware)
+Files:
+- `app/Support/Tenancy/CurrentTenant.php`
+- `app/Support/Tenancy/TenantManager.php`
+- `app/Http/Middleware/SetTenantFromPath.php`
+- `bootstrap/app.php` (middleware alias `tenant`)
+
+Behavior:
+- Resolve `{tenant:slug}` from route
+- block disabled tenant
+- enforce trial policy (config-driven)
+- set current tenant in container for request lifecycle
+
+## 3) Global scoping (BelongsToTenant)
+Files:
+- `app/Models/Concerns/BelongsToTenant.php` (new)
+- `app/Models/Category.php`
+- `app/Models/Unit.php`
+- `app/Models/UnitImage.php`
+- `app/Models/ViewingRequest.php`
+- `app/Models/Rental.php`
+- `app/Models/MaintenanceTicket.php`
+- `app/Models/AuditLog.php`
+- `app/Models/AnalyticsSnapshot.php`
+- `app/Models/RenterSession.php`
+- `app/Models/User.php` (tenant relation + guarded super-admin behavior)
+
+Rules:
+- Global scope by `tenant_id = currentTenant.id`
+- `creating` hook auto-sets `tenant_id` when tenant context exists
+- bypass in console and super-admin context only
+
+## 4) Route refactor to `/t/{tenant:slug}`
+Files:
+- `routes/web.php` (refactor tenant-facing route groups)
+- `app/Providers/RouteServiceProvider.php` (if custom bindings needed)
+- `app/Http/Controllers/*` and `app/Livewire/*` routes remain mostly intact under new group
+
+Plan:
+- Wrap current public showroom and tenant admin pages in:
+  - `Route::prefix('t/{tenant:slug}')->middleware('tenant')->group(...)`
+- tenant login endpoint:
+  - `GET /t/{tenant:slug}/login`
+  - `POST /t/{tenant:slug}/login`
+- keep `/login` as optional slug chooser redirect to `/t/{slug}/login`
+- remove public login links from tenant public pages
+
+## 5) Auth strategy (tenant admin + super-admin)
+Files:
+- `app/Http/Middleware/EnsureAdmin.php` (new, tenant admin check)
+- `app/Http/Middleware/EnsureSuperAdmin.php` (new)
+- `app/Http/Middleware/IsAdmin.php` (deprecate or adapt)
+- `app/Providers/FortifyServiceProvider.php` (tenant-aware login view/logic)
+- `app/Models/User.php` (`is_admin`, `is_super_admin`, `tenant_id`)
+
+Rules:
+- tenant admin: `is_admin=1`, `tenant_id` matches path tenant
+- super-admin: `is_super_admin=1`, `tenant_id = null`
+- super-admin routes live outside tenancy under `/super/*`
+
+## 6) Tenant-isolated images (private disk + streaming)
+Files:
+- `config/filesystems.php` (ensure private disk configured)
+- `app/Http/Controllers/TenantMediaController.php` (new)
+- `routes/web.php` (media route under tenant prefix)
+- `app/Models/UnitImage.php` (`public_id`, `path`, tenant scope)
+- unit upload/update flows:
+  - `app/Livewire/Admin/Units/Form.php`
+  - any image service classes currently used
+- views using image URLs:
+  - `resources/views/livewire/public/unit-show.blade.php`
+  - `resources/views/livewire/public/showroom-index.blade.php`
+  - admin unit image views
+
+Storage pattern:
+- `tenants/{tenant_id}/units/{unit_id}/{filename}`
+- render URLs via route:
+  - `GET /t/{tenant:slug}/media/unit-images/{unitImage:public_id}`
+- never expose `Storage::url()` for tenant unit images
+
+## 7) Super-admin tenant management UI (`/super/tenants`)
+Files:
+- `routes/web.php` (`/super` group with `auth` + `super-admin`)
+- `app/Livewire/Super/Tenants/Index.php` (list/manage)
+- `resources/views/livewire/super/tenants/index.blade.php`
+- optional form components:
+  - `app/Livewire/Super/Tenants/Form.php`
+- service layer:
+  - `app/Application/SuperAdmin/TenantProvisioningService.php` (new)
+
+Features:
+- create tenant (name, slug optional, trial days)
+- create initial tenant admin user
+- disable tenant
+- extend trial
+- output shareable link:
+  - `https://APP_URL/t/{slug}`
+
+## 8) Command: `tenancy:bootstrap-default`
+Files:
+- `app/Console/Commands/TenancyBootstrapDefault.php`
+- `routes/console.php` (if needed)
+- `app/Models/Tenant.php` (new)
+
+Command steps:
+- idempotent create/get default tenant
+- backfill all null `tenant_id`
+- generate missing `unit_images.public_id`
+- ensure super-admin account exists (optional flag)
+- dry-run option recommended
+
+## 9) Pest isolation test plan
+Files:
+- `tests/Feature/Tenancy/PublicIsolationTest.php`
+- `tests/Feature/Tenancy/AdminIsolationTest.php`
+- `tests/Feature/Tenancy/MediaIsolationTest.php`
+- `tests/Feature/Tenancy/SuperAdminTenantProvisionTest.php`
+- `database/factories/TenantFactory.php` (new)
+- update relevant factories with `tenant_id` default states:
+  - `UserFactory`, `CategoryFactory`, `UnitFactory`, `UnitImageFactory`, `RentalFactory`, `ViewingRequestFactory`
+
+Must-cover cases:
+- tenant A cannot view tenant B public units
+- tenant A admin cannot mutate tenant B resources
+- tenant scoping across rentals/tickets/logs/categories
+- tenant A cannot fetch tenant B image endpoint (404)
+- super-admin can create tenant and gets valid `/t/{slug}` link
+
+## Action Items (Atomic Execution Plan)
+- [ ] Add tenancy schema in phases (M01-M03) without breaking existing app.
+- [ ] Implement tenant context services and `tenant` middleware registration.
+- [ ] Add `BelongsToTenant` trait and apply to tenant-owned models.
+- [ ] Introduce `Tenant` model and relationships from tenant-owned models.
+- [ ] Refactor tenant-facing routes under `/t/{tenant:slug}` and keep optional `/login` chooser.
+- [ ] Implement tenant + super-admin auth middleware strategy.
+- [ ] Refactor unit image storage to private tenant paths + `public_id` stream route.
+- [ ] Build `/super/tenants` Livewire management page and tenant provisioning service.
+- [ ] Implement `tenancy:bootstrap-default` command and run it between M02 and M05.
+- [ ] Add Pest isolation coverage and run full auth + tenancy regression tests.
+
+## Validation and Rollout
+- Phase 1 deploy: M01-M03 + code support for nullable `tenant_id`.
+- Execute: `php artisan tenancy:bootstrap-default` in production.
+- Phase 2 deploy: M05 constraints + final route switch.
+- Verify:
+  - tenant/public/admin pages load only with tenant prefix
+  - cross-tenant access returns 404/403
+  - media endpoints are tenant-safe
+  - super-admin tenant creation returns shareable tenant link

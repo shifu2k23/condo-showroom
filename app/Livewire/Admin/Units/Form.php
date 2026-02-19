@@ -8,10 +8,12 @@ use App\Models\UnitImage;
 use App\Services\Ai\UnitDescriptionAiService;
 use App\Services\AuditLogger;
 use App\Services\ImageService;
+use App\Support\Tenancy\TenantManager;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -552,7 +554,14 @@ class Form extends Component
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'category_id' => ['required', 'integer', 'exists:categories,id'],
+            'category_id' => [
+                'required',
+                'integer',
+                Rule::exists('categories', 'id')->where(
+                    'tenant_id',
+                    app(TenantManager::class)->currentId()
+                ),
+            ],
             'location' => ['nullable', 'string', 'max:255'],
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],

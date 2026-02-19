@@ -72,7 +72,7 @@
                         <td class="px-4 py-3 text-slate-500">{{ $unit->deleted_at ? $unit->deleted_at->format('Y-m-d H:i') : '-' }}</td>
                         <td class="px-4 py-3">
                             <div class="flex flex-wrap justify-end gap-2">
-                                <a href="{{ route('admin.units.edit', $unit) }}" wire:navigate class="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 transition hover:-translate-y-0.5 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white">Edit</a>
+                                <a href="{{ route('admin.units.edit', ['unit' => $unit]) }}" wire:navigate class="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 transition hover:-translate-y-0.5 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white">Edit</a>
 
                                 @if(!$unit->trashed())
                                     @if($unit->status !== \App\Models\Unit::STATUS_AVAILABLE)

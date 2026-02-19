@@ -63,11 +63,11 @@
         @else
             <div class="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-2 sm:gap-8 xl:grid-cols-3">
                 @foreach($units as $unit)
-                    <a href="{{ route('unit.show', $unit) }}" class="group block cursor-pointer">
+                    <a href="{{ route('unit.show', ['unit' => $unit->public_id]) }}" class="group block cursor-pointer">
                         <div class="relative mb-3 aspect-square overflow-hidden rounded-2xl bg-slate-200 sm:mb-4 sm:aspect-[4/5] sm:rounded-3xl">
                             @if($unit->images->isNotEmpty())
                                 <img
-                                    src="{{ Storage::url($unit->images->first()->path) }}"
+                                    src="{{ route('tenant.media.unit-images.show', ['unitImage' => $unit->images->first()]) }}"
                                     alt="{{ $unit->name }}"
                                     class="h-full w-full object-cover transition duration-700 group-hover:scale-110"
                                     loading="lazy"

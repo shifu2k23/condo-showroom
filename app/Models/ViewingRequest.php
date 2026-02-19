@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ViewingRequest extends Model
 {
-    use HasFactory;
+    use BelongsToTenant, HasFactory;
 
     public const STATUS_PENDING = 'PENDING';
 
@@ -17,6 +18,7 @@ class ViewingRequest extends Model
     public const STATUS_CANCELLED = 'CANCELLED';
 
     protected $fillable = [
+        'tenant_id',
         'unit_id',
         'requester_name',
         'requester_email',

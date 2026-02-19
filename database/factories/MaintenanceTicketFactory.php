@@ -4,7 +4,9 @@ namespace Database\Factories;
 
 use App\Models\MaintenanceTicket;
 use App\Models\Rental;
+use App\Models\Tenant;
 use App\Models\Unit;
+use App\Support\Tenancy\TenantManager;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -16,7 +18,10 @@ class MaintenanceTicketFactory extends Factory
 
     public function definition(): array
     {
+        $tenantId = app(TenantManager::class)->currentId();
+
         return [
+            'tenant_id' => $tenantId ?? Tenant::factory(),
             'rental_id' => Rental::factory(),
             'unit_id' => Unit::factory(),
             'status' => MaintenanceTicket::STATUS_OPEN,

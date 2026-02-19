@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\ViewingRequest;
 use App\Notifications\ViewingRequested;
+use App\Support\Tenancy\TenantManager;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class ViewingRequestService
@@ -23,7 +25,14 @@ class ViewingRequestService
     public function create(array $attributes, ?Request $request = null, bool $checkPendingOverlap = false): ViewingRequest
     {
         $validated = Validator::make($attributes, [
-            'unit_id' => ['required', 'integer', 'exists:units,id'],
+            'unit_id' => [
+                'required',
+                'integer',
+                Rule::exists('units', 'id')->where(
+                    'tenant_id',
+                    app(TenantManager::class)->currentId()
+                ),
+            ],
             'requested_start_at' => ['required', 'date'],
             'requested_end_at' => ['nullable', 'date'],
             'requester_name' => ['required', 'string', 'max:255'],
@@ -170,7 +179,13 @@ class ViewingRequestService
 
     private function notifyAdmins(ViewingRequest $viewingRequest): void
     {
-        $admins = User::query()->where('is_admin', true)->get();
+        $tenantId = app(TenantManager::class)->currentId();
+
+        $admins = User::query()
+            ->where('is_admin', true)
+            ->where('is_super_admin', false)
+            ->where('tenant_id', $tenantId)
+            ->get();
 
         if ($admins->isEmpty()) {
             return;

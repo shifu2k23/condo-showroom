@@ -9,26 +9,26 @@ class RentalPolicy
 {
     public function viewAny(User $user): bool
     {
-        return (bool) $user->is_admin;
+        return (bool) $user->is_admin && ! $user->is_super_admin;
     }
 
     public function view(User $user, Rental $rental): bool
     {
-        return (bool) $user->is_admin;
+        return (bool) $user->is_admin && ! $user->is_super_admin;
     }
 
     public function create(User $user): bool
     {
-        return (bool) $user->is_admin;
+        return (bool) $user->is_admin && ! $user->is_super_admin;
     }
 
     public function update(User $user, Rental $rental): bool
     {
-        return (bool) $user->is_admin;
+        return (bool) $user->is_admin && ! $user->is_super_admin;
     }
 
     public function delete(User $user, Rental $rental): bool
     {
-        return (bool) $user->is_admin;
+        return (bool) $user->is_admin && ! $user->is_super_admin;
     }
 }

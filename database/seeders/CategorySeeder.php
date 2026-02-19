@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Category;
+use App\Models\Tenant;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -13,6 +14,15 @@ class CategorySeeder extends Seeder
      */
     public function run(): void
     {
+        $tenantId = Tenant::query()->where('slug', 'default')->value('id');
+        if (! is_numeric($tenantId)) {
+            $tenantId = Tenant::query()->value('id');
+        }
+
+        if (! is_numeric($tenantId)) {
+            return;
+        }
+
         $defaults = [
             '1 Bedroom',
             '2 Bedroom',
@@ -20,8 +30,8 @@ class CategorySeeder extends Seeder
         ];
 
         foreach ($defaults as $name) {
-            Category::firstOrCreate(
-                ['name' => $name],
+            Category::query()->withoutGlobalScope('tenant')->firstOrCreate(
+                ['tenant_id' => (int) $tenantId, 'name' => $name],
                 ['slug' => Str::slug($name)]
             );
         }
