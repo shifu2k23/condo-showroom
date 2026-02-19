@@ -5,10 +5,12 @@ namespace App\Livewire\Admin\Units;
 use App\Models\Category;
 use App\Models\Unit;
 use App\Models\UnitImage;
+use App\Services\Ai\UnitDescriptionAiService;
 use App\Services\AuditLogger;
 use App\Services\ImageService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -18,6 +20,97 @@ use Livewire\WithFileUploads;
 class Form extends Component
 {
     use AuthorizesRequests, WithFileUploads;
+
+    /**
+     * @var array<string, array{name:string,location:string,address_text:string,latitude:string,longitude:string}>
+     */
+    private const DAVAO_CONDO_LOCATION_PRESETS = [
+        'avida_towers_abreeza' => [
+            'name' => 'Avida Towers Abreeza',
+            'location' => 'Davao City',
+            'address_text' => 'Avida Towers Abreeza, Davao City',
+            'latitude' => '7.0908805',
+            'longitude' => '125.6097848',
+        ],
+        'aeon_towers' => [
+            'name' => 'Aeon Towers',
+            'location' => 'Davao City',
+            'address_text' => 'Aeon Towers, Davao City',
+            'latitude' => '7.0925497',
+            'longitude' => '125.6116623',
+        ],
+        'eight_spatial' => [
+            'name' => '8 Spatial',
+            'location' => 'Davao City',
+            'address_text' => '8 Spatial, Davao City',
+            'latitude' => '7.067919675',
+            'longitude' => '125.59128389',
+        ],
+        'bria_homes' => [
+            'name' => 'Bria Homes',
+            'location' => 'Davao City',
+            'address_text' => 'Bria Homes, Davao City',
+            'latitude' => '7.3273499',
+            'longitude' => '125.6882758',
+        ],
+        'camella_north_point' => [
+            'name' => 'Camella North Point',
+            'location' => 'Davao City',
+            'address_text' => 'Camella North Point, Davao City',
+            'latitude' => '7.096197329',
+            'longitude' => '125.614291984',
+        ],
+        'verdon_parc' => [
+            'name' => 'Verdon Parc',
+            'location' => 'Davao City',
+            'address_text' => 'Verdon Parc, Davao City',
+            'latitude' => '7.0496733',
+            'longitude' => '125.5973805',
+        ],
+        'inspiria_condominium' => [
+            'name' => 'Inspiria Condominium',
+            'location' => 'Davao City',
+            'address_text' => 'Inspiria Condominium, Davao City',
+            'latitude' => '7.0917879',
+            'longitude' => '125.6105396',
+        ],
+        'vivaldi_residence' => [
+            'name' => 'Vivaldi Residence',
+            'location' => 'Davao City',
+            'address_text' => 'Vivaldi Residence, Davao City',
+            'latitude' => '7.0734557',
+            'longitude' => '125.6122524',
+        ],
+        'one_lakeshore_drive' => [
+            'name' => 'One Lakeshore Drive',
+            'location' => 'Davao City',
+            'address_text' => 'One Lakeshore Drive, Davao City',
+            'latitude' => '7.0988484',
+            'longitude' => '125.6303981',
+        ],
+        'matina_enclaves_residences' => [
+            'name' => 'Matina Enclaves Residences',
+            'location' => 'Davao City',
+            'address_text' => 'Matina Enclaves Residences, Davao City',
+            'latitude' => '7.0534579',
+            'longitude' => '125.5848117',
+        ],
+        'seawind_condominium' => [
+            'name' => 'Seawind Condominium',
+            'location' => 'Davao City',
+            'address_text' => 'Seawind Condominium, Davao City',
+            'latitude' => '7.1364553',
+            'longitude' => '125.6605493',
+        ],
+    ];
+
+    private const AI_TONE_OPTIONS = ['Luxury', 'Neutral', 'Friendly'];
+
+    private const AI_LENGTH_OPTIONS = ['Short', 'Medium', 'Long'];
+
+    private const AI_RATE_LIMIT_PER_MINUTE = 10;
+
+    private const AI_RATE_LIMIT_DECAY_SECONDS = 60;
 
     public ?Unit $unit = null;
 
@@ -48,6 +141,23 @@ class Form extends Component
     public bool $allow_estimator = true;
 
     public array $newImages = [];
+
+    public string $selectedLocationPreset = '';
+
+    public string $aiTone = 'Luxury';
+
+    public string $aiLength = 'Medium';
+
+    public ?string $ai_description_draft = null;
+
+    public ?array $ai_description_meta = null;
+
+    public ?string $ai_description_generated_at = null;
+
+    /**
+     * @var array<int, string>
+     */
+    public array $aiWarnings = [];
 
     public function mount(Unit|int|string|null $unit = null): void
     {
@@ -82,6 +192,50 @@ class Form extends Component
         $this->price_display_mode = $this->unit->price_display_mode;
         $this->estimator_mode = $this->unit->estimator_mode ?? Unit::ESTIMATOR_HYBRID;
         $this->allow_estimator = (bool) $this->unit->allow_estimator;
+        $this->ai_description_draft = $this->unit->ai_description_draft;
+        $this->ai_description_meta = $this->unit->ai_description_meta;
+        $this->ai_description_generated_at = $this->unit->ai_description_generated_at?->toDateTimeString();
+    }
+
+    public function updatedSelectedLocationPreset(string $presetKey): void
+    {
+        if ($this->unit !== null || $presetKey === '') {
+            return;
+        }
+
+        $this->applyCondoLocationPreset($presetKey);
+    }
+
+    public function applyCondoLocationPreset(string $presetKey): void
+    {
+        if ($this->unit !== null) {
+            return;
+        }
+
+        $preset = self::DAVAO_CONDO_LOCATION_PRESETS[$presetKey] ?? null;
+        if ($preset === null) {
+            return;
+        }
+
+        $latitude = (float) $preset['latitude'];
+        $longitude = (float) $preset['longitude'];
+
+        if ($latitude < -90 || $latitude > 90 || $longitude < -180 || $longitude > 180) {
+            return;
+        }
+
+        $this->name = $preset['name'];
+        $this->location = $preset['location'];
+        $this->address_text = $preset['address_text'];
+        $this->latitude = number_format($latitude, 7, '.', '');
+        $this->longitude = number_format($longitude, 7, '.', '');
+
+        $this->dispatch(
+            'leaflet-picker-set-coordinates',
+            componentId: $this->getId(),
+            latitude: $this->latitude,
+            longitude: $this->longitude,
+        );
     }
 
     public function save(ImageService $imageService, AuditLogger $auditLogger): void
@@ -125,6 +279,9 @@ class Form extends Component
                 'longitude' => isset($validated['longitude']) ? (float) $validated['longitude'] : null,
                 'address_text' => $validated['address_text'] ?: null,
                 'description' => $validated['description'] ?: null,
+                'ai_description_draft' => $this->ai_description_draft ?: null,
+                'ai_description_meta' => $this->ai_description_meta,
+                'ai_description_generated_at' => $this->ai_description_generated_at,
                 'status' => $validated['status'],
                 'nightly_price_php' => $validated['nightly_price_php'],
                 'monthly_price_php' => $validated['monthly_price_php'],
@@ -232,6 +389,136 @@ class Form extends Component
         $this->unit->refresh()->load('images');
     }
 
+    public function generateAiDescription(UnitDescriptionAiService $aiService, AuditLogger $auditLogger): void
+    {
+        $this->authorize('access-admin');
+        $this->resetErrorBag('ai_generation');
+        $this->aiWarnings = [];
+
+        if (! in_array($this->aiTone, self::AI_TONE_OPTIONS, true)) {
+            $this->addError('ai_generation', 'Invalid AI tone selected.');
+
+            return;
+        }
+
+        if (! in_array($this->aiLength, self::AI_LENGTH_OPTIONS, true)) {
+            $this->addError('ai_generation', 'Invalid AI length selected.');
+
+            return;
+        }
+
+        $adminId = auth()->id();
+        if (! is_int($adminId)) {
+            abort(403);
+        }
+
+        $rateKey = 'unit-ai-description:'.$adminId;
+        $callbackExecuted = false;
+
+        $attemptResult = RateLimiter::attempt(
+            $rateKey,
+            self::AI_RATE_LIMIT_PER_MINUTE,
+            function () use (&$callbackExecuted, $aiService, $auditLogger): bool {
+                $callbackExecuted = true;
+                $unit = null;
+                if ($this->unit?->exists) {
+                    $unit = $this->unit->fresh([
+                        'category',
+                        'images' => fn ($query) => $query->orderBy('sort_order'),
+                    ]);
+                }
+
+                if (($unit === null || $unit->images->isEmpty()) && $this->newImages === []) {
+                    $this->addError('ai_generation', 'Please upload at least 1 photo before generating.');
+
+                    return false;
+                }
+
+                $contextWarnings = [];
+                if ($this->location === null || trim($this->location) === '') {
+                    $contextWarnings[] = 'Location is missing. Add location for more accurate output.';
+                }
+
+                try {
+                    $generated = ($unit !== null && $unit->images->isNotEmpty())
+                        ? $aiService->generate(
+                            unit: $unit,
+                            tone: $this->aiTone,
+                            length: $this->aiLength,
+                            context: $this->aiContextForGeneration($unit)
+                        )
+                        : $aiService->generateFromUploadedFiles(
+                            files: $this->newImages,
+                            tone: $this->aiTone,
+                            length: $this->aiLength,
+                            context: $this->aiContextForGeneration($unit)
+                        );
+                } catch (\Throwable $exception) {
+                    report($exception);
+                    $safeMessages = [
+                        'Please upload at least 1 photo before generating.',
+                        'AI service is not configured.',
+                    ];
+
+                    $this->addError(
+                        'ai_generation',
+                        in_array($exception->getMessage(), $safeMessages, true)
+                            ? $exception->getMessage()
+                            : 'Unable to generate AI description right now. Please try again.'
+                    );
+
+                    return false;
+                }
+
+                $this->ai_description_draft = $generated['draft'];
+                $this->ai_description_meta = $generated['meta'];
+                $this->ai_description_generated_at = $generated['generated_at'];
+                $this->aiWarnings = array_values(array_unique(array_merge(
+                    $contextWarnings,
+                    $generated['warnings']
+                )));
+
+                $auditLogger->log(
+                    action: 'AI_DESCRIPTION_GENERATED',
+                    unit: $unit,
+                    changes: [
+                        'tone' => $this->aiTone,
+                        'length' => $this->aiLength,
+                        'image_count' => $generated['image_count'],
+                    ]
+                );
+
+                return true;
+            },
+            self::AI_RATE_LIMIT_DECAY_SECONDS
+        );
+
+        if ($attemptResult === false && ! $callbackExecuted) {
+            $this->addError('ai_generation', 'Too many attempts. Please try again in a minute.');
+        }
+    }
+
+    public function applyAiDescriptionDraft(): void
+    {
+        $this->authorize('access-admin');
+
+        if ($this->ai_description_draft === null || trim($this->ai_description_draft) === '') {
+            return;
+        }
+
+        $this->description = $this->ai_description_draft;
+    }
+
+    public function clearAiDescriptionDraft(): void
+    {
+        $this->authorize('access-admin');
+        $this->ai_description_draft = null;
+        $this->ai_description_meta = null;
+        $this->ai_description_generated_at = null;
+        $this->aiWarnings = [];
+        $this->resetErrorBag('ai_generation');
+    }
+
     public function moveImageUp(int $imageId, ImageService $imageService): void
     {
         $this->moveImage($imageId, $imageService, -1);
@@ -244,10 +531,20 @@ class Form extends Component
 
     public function render()
     {
+        $sortedDavaoCondoLocationPresets = collect(self::DAVAO_CONDO_LOCATION_PRESETS)
+            ->sortBy(
+                fn (array $preset): string => $preset['name'],
+                SORT_NATURAL | SORT_FLAG_CASE
+            )
+            ->all();
+
         return view('livewire.admin.units.form', [
             'categories' => Category::query()->orderBy('name')->get(),
             'existingImages' => $this->unit?->images()->orderBy('sort_order')->get() ?? collect(),
             'isEditMode' => $this->unit !== null,
+            'davaoCondoLocationPresets' => $sortedDavaoCondoLocationPresets,
+            'aiToneOptions' => self::AI_TONE_OPTIONS,
+            'aiLengthOptions' => self::AI_LENGTH_OPTIONS,
         ]);
     }
 
@@ -315,5 +612,31 @@ class Form extends Component
         $imageService->reorderUnitImages($this->unit->id, $orderedIds);
 
         $this->unit->refresh()->load('images');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function aiContextForGeneration(?Unit $unit): array
+    {
+        return [
+            'name' => $this->name !== '' ? $this->name : $unit?->name,
+            'category' => $unit?->category?->name ?? $this->selectedCategoryName(),
+            'location' => $this->location,
+            'address_text' => $this->address_text,
+            'price_display_mode' => $this->price_display_mode,
+            'nightly_price_php' => $this->nightly_price_php,
+            'monthly_price_php' => $this->monthly_price_php,
+        ];
+    }
+
+    private function selectedCategoryName(): ?string
+    {
+        $categoryId = filter_var($this->category_id, FILTER_VALIDATE_INT);
+        if (! is_int($categoryId) || $categoryId <= 0) {
+            return null;
+        }
+
+        return Category::query()->whereKey($categoryId)->value('name');
     }
 }

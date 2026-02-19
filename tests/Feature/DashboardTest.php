@@ -22,3 +22,14 @@ test('admin authenticated users can visit the dashboard', function () {
     $response = $this->get(route('admin.dashboard'));
     $response->assertOk();
 });
+
+test('dashboard add unit control remains direct link to create form', function () {
+    $user = User::factory()->admin()->create();
+    $this->actingAs($user);
+
+    $response = $this->get(route('admin.dashboard'));
+
+    $response->assertOk();
+    $response->assertSee('Add Unit');
+    $response->assertDontSee('Davao Condo Presets');
+});

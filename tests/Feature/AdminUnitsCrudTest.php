@@ -82,3 +82,21 @@ test('admin can set status, soft delete, and restore units with audit entries', 
 
     $this->assertDatabaseHas('units', ['id' => $unit->id, 'deleted_at' => null]);
 });
+
+test('admin unit create form applies davao condo preset and updates coordinates', function () {
+    $admin = User::factory()->admin()->create();
+    $this->actingAs($admin);
+
+    $response = $this->get(route('admin.units.create'));
+    $response->assertOk();
+    $response->assertSee('Condo Location Preset (Davao City)');
+
+    Livewire::test(UnitForm::class)
+        ->set('selectedLocationPreset', 'avida_towers_abreeza')
+        ->assertSet('name', 'Avida Towers Abreeza')
+        ->assertSet('location', 'Davao City')
+        ->assertSet('address_text', 'Avida Towers Abreeza, Davao City')
+        ->assertSet('latitude', '7.0908805')
+        ->assertSet('longitude', '125.6097848')
+        ->assertDispatched('leaflet-picker-set-coordinates');
+});

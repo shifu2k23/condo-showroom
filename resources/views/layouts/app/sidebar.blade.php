@@ -15,6 +15,7 @@
             request()->routeIs('admin.categories.*') => 'Categories',
             request()->routeIs('admin.viewing-requests.*') => 'Viewing Requests',
             request()->routeIs('admin.rentals.*') => 'Rentals',
+            request()->routeIs('admin.analytics.*') => 'Analytics',
             request()->routeIs('admin.logs.*') => 'Audit Logs',
             $isSettingsRoute => 'Profile Settings',
             default => 'Admin',
@@ -25,6 +26,7 @@
             ['label' => 'Categories', 'route' => 'admin.categories.index', 'active' => request()->routeIs('admin.categories.*'), 'icon' => 'layers'],
             ['label' => 'Viewing Requests', 'route' => 'admin.viewing-requests.index', 'active' => request()->routeIs('admin.viewing-requests.*'), 'icon' => 'calendar'],
             ['label' => 'Rentals', 'route' => 'admin.rentals.index', 'active' => request()->routeIs('admin.rentals.*'), 'icon' => 'key'],
+            ['label' => 'Analytics', 'route' => 'admin.analytics.index', 'active' => request()->routeIs('admin.analytics.*'), 'icon' => 'chart'],
             ['label' => 'Audit Logs', 'route' => 'admin.logs.index', 'active' => request()->routeIs('admin.logs.*'), 'icon' => 'clipboard'],
             ['label' => 'Profile', 'route' => 'profile.edit', 'active' => $isSettingsRoute, 'icon' => 'user'],
         ];
@@ -95,6 +97,8 @@
                                         <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M7.5 3v3m9-3v3M4.5 9h15M6.25 5.5h11.5A1.75 1.75 0 0 1 19.5 7.25v10.5a1.75 1.75 0 0 1-1.75 1.75H6.25a1.75 1.75 0 0 1-1.75-1.75V7.25A1.75 1.75 0 0 1 6.25 5.5Z"/></svg>
                                     @elseif ($item['icon'] === 'key')
                                         <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M14.5 6a4.5 4.5 0 1 1-3.65 7.13L3 21h4.5v-2.25h2.25V16.5H12l1.1-1.1A4.5 4.5 0 0 1 14.5 6Z"/></svg>
+                                    @elseif ($item['icon'] === 'chart')
+                                        <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4.5 19.5h15M7.5 16.5v-6m4.5 6V7.5m4.5 9v-3"/></svg>
                                     @elseif ($item['icon'] === 'user')
                                         <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M15.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0ZM4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
                                     @else

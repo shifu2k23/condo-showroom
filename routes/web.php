@@ -3,6 +3,7 @@
 use App\Http\Controllers\RenterAccessController;
 use App\Http\Controllers\RenterTicketController;
 use App\Livewire\Admin\AuditLogs\Index as AuditLogsIndex;
+use App\Livewire\Admin\Analytics\Index as AnalyticsIndex;
 use App\Livewire\Admin\Categories\Index as CategoriesIndex;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\Rentals\Form as RentalForm;
@@ -72,6 +73,7 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::get('/rentals', RentalsIndex::class)->name('rentals.index');
         Route::get('/rentals/create', RentalForm::class)->name('rentals.create');
         Route::get('/rentals/{rental}/edit', RentalForm::class)->name('rentals.edit');
+        Route::get('/analytics', AnalyticsIndex::class)->name('analytics.index');
         Route::get('/logs', AuditLogsIndex::class)->name('logs.index');
     });
 

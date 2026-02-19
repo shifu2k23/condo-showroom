@@ -37,6 +37,9 @@ class Unit extends Model
         'longitude',
         'address_text',
         'description',
+        'ai_description_draft',
+        'ai_description_meta',
+        'ai_description_generated_at',
         'status',
         'nightly_price_php',
         'monthly_price_php',
@@ -53,6 +56,8 @@ class Unit extends Model
         'allow_estimator' => 'boolean',
         'latitude' => 'decimal:7',
         'longitude' => 'decimal:7',
+        'ai_description_meta' => 'array',
+        'ai_description_generated_at' => 'datetime',
     ];
 
     public function uniqueIds(): array

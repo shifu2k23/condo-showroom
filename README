@@ -1,274 +1,174 @@
-You are a senior Laravel engineer. Extend an Airbnb-like Laravel + Livewire app with:
+You are a senior Laravel + Livewire engineer. Implement an ADMIN-ONLY AI Description Maker that reads uploaded unit images stored locally + unit location text and generates a preview description draft, then allows admin to click Apply to set the unit description.
+
+STACK:
 - Laravel (latest stable)
 - Livewire (latest stable)
-- Laravel default auth exists for ADMIN only
+- Laravel default auth already installed (admin logs in at /login)
 - Pest for tests
-
-Goal:
-1) PUBLIC showroom shows rooms/units and availability.
-2) When a unit is rented for a period, the public showroom must show the unit as “RENTED” for that period WITHOUT showing renter names.
-3) Renters must be able to access a Renter Dashboard WITHOUT creating an account and WITHOUT Gmail login.
-4) Renters must be able to submit maintenance tickets (cleaning, clogged sink/CR, etc.).
-5) Renter access must EXPIRE automatically when their rental period ends. After expiry, renter “login” must be unavailable and show a professional message.
+- MySQL
+- Storage is local `public` disk (FILESYSTEM_DISK=public)
+- OpenAI API key already configured in .env and config/services.php (Step 1–3 done)
 
 ABSOLUTE SECURITY REQUIREMENTS:
-- Never expose API keys/secrets client-side (Blade/Livewire/JS).
-- Store secrets only in .env/config.
-- If OCR/ID scanning is used, it MUST be server-side only. The frontend must not call OCR providers directly.
-- Do not store raw ID images publicly; store in private storage and serve via signed temporary URLs if needed.
-- Do not log secrets or sensitive ID numbers.
+- NEVER expose OPENAI_API_KEY in any client-side code (Blade/Livewire/JS).
+- Backend calls only (server-to-server).
+- Do not log secrets.
+- Do not store raw base64 images in DB.
+- Rate limit the AI generation endpoint per admin user.
+
+UX REQUIREMENT:
+- Admin clicks “Generate AI Description” -> sees preview -> can click “Apply” to copy into description textarea.
+- Do NOT auto-apply; preview first.
+
+SCOPE:
+- Admin-only feature inside the existing Admin Unit Create/Edit page (Livewire form).
+- No changes to customer/public logic.
 
 ========================================================
-A) RENTAL PERIOD + PUBLIC “RENTED” DISPLAY
+1) DATA MODEL CHANGES (MIGRATION)
 ========================================================
-Add concept of Rentals/Bookings that represent actual stays (not only viewing requests).
+Add optional AI draft fields to units table:
+- ai_description_draft (LONGTEXT, nullable)
+- ai_description_meta (JSON, nullable)  // store tone, length, model, generated_at
+- ai_description_generated_at (timestamp, nullable)
 
-Public showroom:
-- A unit can be AVAILABLE or RENTED for specific dates.
-- The public UI must show:
-   - “RENTED” badge when current date is within an active rental period
-   - Optionally show “Rented until {date}” but NEVER show renter name, contact, or ID.
-
-Rules:
-- Availability for a given date range is computed from rentals:
-   - If any CONFIRMED rental overlaps requested range => not available.
-- Current “now” status on public card:
-   - If now overlaps an active CONFIRMED rental => badge RENTED
-   - Else AVAILABLE
+Do NOT alter existing columns.
 
 ========================================================
-B) RENTER ACCESS WITHOUT TRADITIONAL ACCOUNTS
+2) ADMIN UNIT FORM UI (LIVEWIRE)
 ========================================================
-Renters do NOT create accounts and do NOT use email login.
-Instead, create a “Renter Access” mechanism based on:
-- Renter name + selected valid ID type + ID verification reference
-- After verification, renter receives an access method that does not require email/password.
+In the Admin Unit Create/Edit Livewire component (e.g., AdminUnitForm):
+Add a new “AI Description” card/section containing:
 
-REQUIREMENT:
-- Provide a public page button “Renter Access” (NOT “Login” in the traditional sense).
-- Flow:
-  1) Renter enters:
-     - Full Name (string)
-     - Valid ID type (dropdown: Passport, Driver’s License, National ID, etc.)
-     - Valid ID number OR last 4 digits (choose privacy-friendly approach)
-     - Optional: Date of birth (optional)
-     - Optional: Rental reference code (recommended)
-  2) System verifies renter against an existing CONFIRMED rental record.
-  3) If match and rental is still active (today <= end_date), grant access to Renter Dashboard.
-  4) If rental has ended (today > end_date), deny access with professional message:
-     “Access unavailable. Our records show there is no active rental under these details. If you believe this is an error, please contact the front desk.”
+A) Controls:
+- Tone select: Luxury / Neutral / Friendly (default: Luxury)
+- Length select: Short / Medium / Long (default: Medium)
+- Button: “Generate AI Description”
+- Show a loading state while generating
 
-IMPORTANT SECURITY DESIGN:
-- Do NOT implement a “weak login” by name only.
-- Use at least TWO factors from:
-  - rental reference code (best)
-  - ID type + ID number (or partial) that matches rental record
-  - phone number (optional)
-- Do NOT expose renter PII in public routes.
-- Rate limit access attempts per IP.
+B) Preview:
+- Show ai_description_draft in a read-only preview box (formatted with paragraphs + bullets)
+- Buttons:
+  - “Apply to Description” (copies draft into description field)
+  - “Regenerate” (calls generation again)
+  - “Clear Draft” (sets draft to null)
 
-SESSION DESIGN:
-- After successful renter access, create a short-lived session (server-side) tied to:
-  - renter_access_token (random, stored hashed)
-  - rental_id
-  - expires_at = rental end_date (or earlier)
-- Renter dashboard requires this session/token.
-- Token invalid automatically after rental ends.
+C) Validation behavior:
+- If unit has no images yet, show friendly error:
+  “Please upload at least 1 photo before generating.”
+- Require a location_text field (or existing location field) for better output:
+  If location missing, allow generation but include warning and ask admin to add location.
+
+Implementation details:
+- Use wire:click handlers.
+- Keep this admin-only; do not expose on public pages.
 
 ========================================================
-C) VALID ID SCANNING / OCR (OPTIONAL, BUT ARCHITECTED SAFELY)
+3) IMAGE INPUT STRATEGY (NO NGROK, LOCAL ONLY)
 ========================================================
-If the system supports scanning ID credentials:
-- Provide admin flow to capture ID image at check-in (admin-auth only).
-- OCR verification must run server-side via queued job.
-- Store:
-  - id_type
-  - id_number_hash (never store raw number if possible)
-  - optional last4 for matching
-  - id_scan_file_path (private disk)
-- Renter access verification uses stored hashed/partial values.
+Because images are local and not publicly accessible, implement vision input using base64:
+- Read the first N images (N=3 by default) from storage disk.
+- Convert each to data URL:
+  data:image/jpeg;base64,....
+- Only allow jpg/jpeg/png/webp.
+- Limit each image max size read to 2MB for prompt cost/performance.
+- If an image is larger than 2MB, downscale is optional; otherwise skip with a warning.
 
-No API keys in JS/Livewire output. Ever.
+Do NOT store base64 in DB. Generate base64 in memory only during request.
 
 ========================================================
-D) RENTER DASHBOARD
+4) OPENAI INTEGRATION (BACKEND SERVICE)
 ========================================================
-Public route:
-- GET /renter/access (form)
-- POST /renter/access (validate & create session)
-- GET /renter/dashboard (requires renter session)
-- POST /renter/tickets (requires renter session)
-- GET /renter/tickets (requires renter session)
+Create a service:
+- app/Services/Ai/UnitDescriptionAiService.php
 
-Renter Dashboard content:
-1) Rented Unit details:
-   - Unit name
-   - Unit category/location
-   - Rental period start_date to end_date
-   - Status: Active / Expired
-2) Maintenance Tickets:
-   - List of their submitted tickets (status: OPEN/IN_PROGRESS/RESOLVED/CLOSED)
-   - Create ticket form:
-      - category: Cleaning, Plumbing, Electrical, Other
-      - subject
-      - description
-      - optional photo upload (store privately; show thumbnails via temporary signed URLs)
-3) Professional notice section:
-   - “For urgent concerns, contact front desk at …” (config-driven)
+Responsibilities:
+- build a strict prompt
+- call OpenAI API from backend only
+- request structured JSON output
+- parse and validate returned JSON
+- return a DTO-like array:
+  - tagline
+  - highlights[]
+  - full_description
+  - detected_visual_features[]
+  - warnings[] (optional)
+- convert result into a draft string formatted for textarea:
+  e.g.
+  Tagline line
+  Bullets
+  Paragraph(s)
 
-Expired logic:
-- If rental expired, dashboard should block ticket creation and show:
-  “Your rental period has ended. Ticket submission is unavailable. Please contact the front desk if you need assistance.”
+Model:
+- Use config('services.openai.model')
 
-========================================================
-E) ADMIN MANAGEMENT OF RENTALS + TICKETS
-========================================================
-Admin routes (auth protected):
-- /admin/rentals
-- /admin/rentals/create
-- /admin/rentals/{rental}/edit
-- /admin/tickets
-- /admin/tickets/{ticket}
+OpenAI request must include:
+- text instructions with strong guardrails:
+  - “Do not invent amenities not visible or provided.”
+  - “If unsure, say ‘not specified’.”
+  - “No personal data.”
+  - “Output valid JSON only.”
+- include unit info: title/name, category, location text, known amenities (if exists), pricing mode (optional)
+- include image inputs as base64 data URLs
 
-Admin Rental features:
-- Create CONFIRMED rental for a unit:
-   - unit_id
-   - renter_full_name
-   - renter_id_type
-   - renter_id_last4 or renter_id_hash
-   - rental_reference_code (unique, human-friendly)
-   - start_date, end_date
-- Prevent overlapping CONFIRMED rentals for same unit.
-- Ability to cancel rental (status CANCELLED) -> restores availability.
-- On confirm rental, unit becomes RENTED for that period (computed).
-
-Admin Ticket features:
-- View tickets (filters by status, unit, date)
-- Update ticket status
-- Assign to staff (optional)
-- Add admin notes (internal only, never shown publicly)
-
-Real-time notifications (admin):
-- When a ticket is created, notify admins (broadcast + database notifications).
-- When a rental is created/confirmed, optionally notify admins.
+Error handling:
+- If OpenAI fails, return controlled error message to UI.
+- No leaking provider response dumps to browser.
 
 ========================================================
-F) DATABASE TABLES (MANDATORY)
+5) RATE LIMITING (ADMIN)
 ========================================================
-1) rentals:
-- id
-- public_id (ULID) unique indexed
-- unit_id fk indexed
-- status enum: PENDING/CONFIRMED/CANCELLED
-- renter_full_name (string)
-- renter_id_type (string)
-- renter_id_last4 (string nullable) OR renter_id_hash (string nullable)
-- renter_reference_code (string unique indexed) REQUIRED for renter access
-- start_date (date indexed)
-- end_date (date indexed)
-- created_by (admin user_id nullable indexed)
-- created_at/updated_at
+Protect generation to prevent abuse:
+- Per-admin user: 10 requests per minute
+Use RateLimiter::attempt() so failures count too.
 
-2) renter_sessions (or renter_access_tokens):
-- id
-- rental_id fk indexed
-- token_hash (string) unique
-- expires_at (datetime indexed)
-- last_used_at (datetime nullable)
-- created_at
-
-3) maintenance_tickets:
-- id
-- rental_id fk indexed (tie ticket to a rental, not to public user)
-- unit_id fk indexed
-- status enum: OPEN/IN_PROGRESS/RESOLVED/CLOSED default OPEN
-- category enum: CLEANING/PLUMBING/ELECTRICAL/OTHER
-- subject string
-- description text
-- attachment_path nullable (private storage)
-- created_at/updated_at
-
-4) unit_images as existing
-5) audit_logs as existing:
-- log creation of rental, ticket creation, status changes
-
-Indexes:
-- rentals(unit_id, start_date, end_date, status)
-- rentals(renter_reference_code)
-- tickets(rental_id, status, created_at)
+Return a friendly UI message on throttling:
+“Too many attempts. Please try again in a minute.”
 
 ========================================================
-G) AVAILABILITY + OVERLAP CHECK (MANDATORY)
+6) AUDIT LOGGING
 ========================================================
-Implement overlap detection for CONFIRMED rentals:
-Given new [start, end], overlap exists if:
-- existing.start <= new.end AND existing.end >= new.start
-
-Prevent creation/confirmation if overlap exists.
-
-========================================================
-H) RENTER ACCESS VALIDATION (MANDATORY)
-========================================================
-On POST /renter/access:
-Input validation:
-- name required
-- id_type required
-- reference_code required
-- optional last4
-
-Verification steps:
-1) Find rental by reference_code
-2) Compare normalized renter_full_name (case-insensitive, trimmed)
-3) Compare id_type
-4) If last4 stored, compare last4 if provided
-5) Ensure rental.status = CONFIRMED
-6) Ensure today <= end_date (active)
-If passes, create renter session token and redirect to /renter/dashboard
-If fails or expired, show professional denial message.
-
-Rate limit: 5 attempts per minute per IP.
+If you have an audit logger, record:
+- action: AI_DESCRIPTION_GENERATED
+- user_id
+- unit_id
+- meta: tone, length, image_count used
+Do NOT log base64 or any raw image content.
 
 ========================================================
-I) LIVEWIRE COMPONENTS (SUGGESTED)
+7) PEST TESTS
 ========================================================
-Public:
-- ShowroomIndex
-- UnitShow (gallery + availability)
-- RenterAccessForm
-- RenterDashboard
-- RenterTickets
+Add tests:
+1) Non-admin cannot generate AI description (403)
+2) Admin can generate AI description when unit has images
+3) Validation fails when no images
+4) Rate limiting works (after N attempts => 429 or controlled error)
+5) “Apply” action updates Livewire description field (unit description not persisted until save, unless your form saves immediately)
 
-Admin:
-- AdminRentalsIndex + AdminRentalForm
-- AdminTicketsIndex + AdminTicketShow
-- AdminNotificationsBell
-
-========================================================
-J) TESTING (PEST)
-========================================================
-Write tests for:
-- Public showroom shows RENTED when now overlaps CONFIRMED rental (no renter name visible)
-- Overlap detection prevents double-booking
-- Renter access:
-   - valid reference + name + id_type grants session
-   - expired rental denies with correct message
-   - wrong data denies
-   - rate limiting triggers
-- Renter dashboard requires renter session token
-- Ticket creation works for active rental; blocked for expired rental
-- Admin can view and update tickets
-- Notifications fired on ticket creation (Notification::fake)
+Mock OpenAI calls:
+- Do not call real OpenAI in tests.
+- Use Http::fake() and return a deterministic JSON.
 
 ========================================================
-K) README
+8) IMPLEMENTATION DETAILS
 ========================================================
-Document:
-- How admin creates rentals and reference codes
-- How renter access works (no accounts)
-- Ticketing workflow
-- Security notes:
-   - no API keys client-side
-   - ID scan stored privately
-   - rate limiting enabled
+- Use Laravel Http client (Http::withToken()).
+- Put OpenAI base URL in config or use standard.
+- Ensure requests use timeouts and retries responsibly.
+- Keep all secrets server-side.
+- Keep code clean and minimal.
 
-Deliver clean code with migrations, models, controllers/services, Livewire components, policies/middleware, and passing Pest tests.
+========================================================
+9) DELIVERABLES
+========================================================
+Provide:
+- Migration file
+- Updated Unit model (casts for ai_description_meta json)
+- UnitDescriptionAiService
+- Livewire component changes (properties + actions + blade view section)
+- Pest tests with Http::fake()
+
+IMPORTANT:
+- Do NOT modify customer/public UI.
+- Do NOT expose keys in frontend.
+- Use preview then Apply workflow.

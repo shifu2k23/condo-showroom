@@ -15,6 +15,7 @@ const DEFAULT_CENTER = [14.5995, 120.9842];
 const DEFAULT_ZOOM = 12;
 const PIN_ZOOM = 16;
 const mapRegistry = new WeakMap();
+const pickerSyncRegistry = new WeakMap();
 
 const toNumber = (value) => {
     const parsed = Number.parseFloat(`${value ?? ''}`);
@@ -178,6 +179,7 @@ const initializeLeafletPicker = (root) => {
     }
 
     mapRegistry.set(mapElement, map);
+    pickerSyncRegistry.set(mapElement, { syncCoordinates });
     syncFromManualInput();
     window.setTimeout(() => map.invalidateSize(), 0);
 };
@@ -220,6 +222,39 @@ const bootstrapLeafletMaps = () => {
     });
 };
 
+const handleLeafletPresetCoordinates = (event) => {
+    const detail = event.detail ?? {};
+    const latitude = toNumber(detail.latitude);
+    const longitude = toNumber(detail.longitude);
+    const componentId = `${detail.componentId ?? ''}`;
+
+    if (latitude === null || longitude === null) {
+        return;
+    }
+
+    if (!isValidLatitude(latitude) || !isValidLongitude(longitude)) {
+        return;
+    }
+
+    document.querySelectorAll('[data-leaflet-picker]').forEach((root) => {
+        if (componentId !== '' && root.dataset.livewireId !== componentId) {
+            return;
+        }
+
+        const mapElement = root.querySelector('[data-leaflet-picker-map]');
+        if (!(mapElement instanceof HTMLElement)) {
+            return;
+        }
+
+        const syncState = pickerSyncRegistry.get(mapElement);
+        if (!syncState || typeof syncState.syncCoordinates !== 'function') {
+            return;
+        }
+
+        syncState.syncCoordinates(latitude, longitude, true);
+    });
+};
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bootstrapLeafletMaps, { once: true });
 } else {
@@ -227,3 +262,4 @@ if (document.readyState === 'loading') {
 }
 
 document.addEventListener('livewire:navigated', bootstrapLeafletMaps);
+document.addEventListener('leaflet-picker-set-coordinates', handleLeafletPresetCoordinates);

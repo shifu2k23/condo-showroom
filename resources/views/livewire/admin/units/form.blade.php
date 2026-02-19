@@ -11,6 +11,19 @@
     @endif
 
     <form wire:submit.prevent="save" class="space-y-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        @if(! $isEditMode)
+            <div class="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4 sm:p-5">
+                <label for="unit-location-preset" class="mb-2 block text-xs font-medium uppercase tracking-[0.14em] text-indigo-700">Condo Location Preset (Davao City)</label>
+                <select id="unit-location-preset" wire:model.live="selectedLocationPreset" class="h-11 w-full rounded-xl border border-indigo-200 bg-white px-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                    <option value="">Select condo / tower</option>
+                    @foreach($davaoCondoLocationPresets as $presetKey => $preset)
+                        <option value="{{ $presetKey }}">{{ $preset['name'] }} ({{ $preset['latitude'] }}, {{ $preset['longitude'] }})</option>
+                    @endforeach
+                </select>
+                <p class="mt-2 text-xs text-indigo-700/90">Pag pumili ka ng condo/tower, auto-fill ang name, location, at lat/long pin sa map.</p>
+            </div>
+        @endif
+
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
                 <label for="unit-name" class="mb-2 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Name / Title</label>
@@ -134,6 +147,66 @@
             <textarea id="unit-description" wire:model="description" rows="5" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"></textarea>
             @error('description') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
         </div>
+
+        @if($isEditMode)
+            <div class="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h3 class="text-lg font-semibold text-slate-900">AI Description</h3>
+                        <p class="text-xs text-slate-500">Admin-only. Generate a preview draft, then apply it to Description manually.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                        <label for="ai-tone" class="mb-2 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Tone</label>
+                        <select id="ai-tone" wire:model="aiTone" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                            @foreach($aiToneOptions as $toneOption)
+                                <option value="{{ $toneOption }}">{{ $toneOption }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label for="ai-length" class="mb-2 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Length</label>
+                        <select id="ai-length" wire:model="aiLength" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                            @foreach($aiLengthOptions as $lengthOption)
+                                <option value="{{ $lengthOption }}">{{ $lengthOption }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" wire:click="generateAiDescription" wire:loading.attr="disabled" wire:target="generateAiDescription" class="inline-flex min-h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:bg-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50 disabled:cursor-not-allowed disabled:opacity-70">
+                        <span wire:loading.remove wire:target="generateAiDescription">{{ $ai_description_draft ? 'Regenerate' : 'Generate AI Description' }}</span>
+                        <span wire:loading wire:target="generateAiDescription">Generating...</span>
+                    </button>
+                    <button type="button" wire:click="applyAiDescriptionDraft" @disabled(blank($ai_description_draft)) class="inline-flex min-h-10 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-4 text-xs font-semibold text-emerald-700 transition hover:-translate-y-0.5 hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50 disabled:cursor-not-allowed disabled:opacity-60">
+                        Apply to Description
+                    </button>
+                    <button type="button" wire:click="clearAiDescriptionDraft" @disabled(blank($ai_description_draft)) class="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-xs font-medium text-slate-700 transition hover:-translate-y-0.5 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50 disabled:cursor-not-allowed disabled:opacity-60">
+                        Clear Draft
+                    </button>
+                </div>
+
+                @error('ai_generation')
+                    <p class="text-xs text-red-600">{{ $message }}</p>
+                @enderror
+
+                @if($aiWarnings !== [])
+                    <ul class="space-y-1 text-xs text-amber-700">
+                        @foreach($aiWarnings as $warning)
+                            <li>{{ $warning }}</li>
+                        @endforeach
+                    </ul>
+                @endif
+
+                <div>
+                    <label for="ai-draft-preview" class="mb-2 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Draft Preview (Read-only)</label>
+                    <textarea id="ai-draft-preview" rows="8" readonly class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none">{{ $ai_description_draft ?? '' }}</textarea>
+                </div>
+            </div>
+        @endif
 
         <label class="inline-flex min-h-11 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
             <input type="checkbox" wire:model="allow_estimator" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/40">
