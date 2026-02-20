@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Models\Tenant;
 use Laravel\Fortify\Features;
 
 test('login screen can be rendered', function () {
@@ -66,4 +67,11 @@ test('users can logout', function () {
     $response->assertRedirect(route('login'));
 
     $this->assertGuest();
+});
+
+test('legacy tenant login url redirects to global login', function () {
+    $tenant = Tenant::factory()->create(['slug' => 'skysthelimit']);
+
+    $this->get('/t/'.$tenant->slug.'/login')
+        ->assertRedirect(route('login'));
 });

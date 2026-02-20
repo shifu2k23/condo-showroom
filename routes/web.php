@@ -59,6 +59,10 @@ Route::view('/instructions', 'pages.instructions')->name('instructions');
 Route::prefix('t/{tenant:slug}')
     ->middleware('tenant')
     ->group(function (): void {
+        // Legacy compatibility: old tenant-scoped login URLs now redirect to global /login.
+        Route::get('/login', fn (): RedirectResponse => redirect()->route('login'))
+            ->name('tenant.legacy.login');
+
         Route::get('/', ShowroomIndex::class)->name('home');
         Route::get('/units/{unit:public_id}', UnitShow::class)->name('unit.show');
         Route::get('/renter/access', RenterPortal::class)->middleware('no-store')->name('renter.access');
