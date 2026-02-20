@@ -1,57 +1,72 @@
 <div>
     <section class="mx-auto max-w-7xl px-4 pb-10 pt-10 sm:px-6 sm:pb-12 sm:pt-14">
-        <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">Find your next stay.</h1>
+        <div class="relative overflow-hidden rounded-[2rem] border border-slate-200/70 bg-white/80 px-4 py-5 shadow-[0_24px_90px_-36px_rgba(15,23,42,0.4)] backdrop-blur sm:px-8 sm:py-8">
+            <div aria-hidden="true" class="pointer-events-none absolute -left-10 top-0 h-36 w-36 rounded-full bg-teal-300/35 blur-3xl"></div>
+            <div aria-hidden="true" class="pointer-events-none absolute right-0 top-0 h-40 w-40 rounded-full bg-amber-300/30 blur-3xl"></div>
+            <div aria-hidden="true" class="pointer-events-none absolute -bottom-16 left-1/3 h-40 w-40 rounded-full bg-pink-300/25 blur-3xl"></div>
 
-        <div class="mt-8 flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-2 shadow-xl shadow-slate-200/50 lg:flex-row lg:items-center">
-            <label class="sr-only" for="showroom-search">Search by name or location</label>
-            <input
-                id="showroom-search"
-                type="text"
-                wire:model.live.debounce.350ms="search"
-                placeholder="Search by name or location..."
-                class="w-full flex-1 rounded-xl px-5 py-3.5 text-slate-700 outline-none ring-indigo-500/30 transition focus:ring lg:px-6 lg:py-4"
-            />
+            <div class="showroom-stage-heading relative">
+                <p class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600 shadow-sm">
+                    <span class="h-2 w-2 rounded-full bg-teal-500"></span>
+                    Featured Stays
+                </p>
+                <h1 class="mt-4 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">Find your next stay.</h1>
+                <p class="mt-2 max-w-2xl text-sm text-slate-600 sm:text-base">
+                    Browse curated units, filter by category, and open each listing with complete pricing and availability details.
+                </p>
+            </div>
 
-            <div class="hidden h-10 w-px self-center bg-slate-200 lg:block" aria-hidden="true"></div>
+            <div class="showroom-stage-controls mt-7 flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-2 shadow-xl shadow-slate-200/50 lg:flex-row lg:items-center">
+                <label class="sr-only" for="showroom-search">Search by name or location</label>
+                <input
+                    id="showroom-search"
+                    type="text"
+                    wire:model.live.debounce.350ms="search"
+                    placeholder="Search by name or location..."
+                    class="w-full flex-1 rounded-xl px-5 py-3.5 text-slate-700 outline-none ring-indigo-500/30 transition focus:ring lg:px-6 lg:py-4"
+                />
 
-            <label class="sr-only" for="showroom-category">Category</label>
-            <select
-                id="showroom-category"
-                wire:model.live="categoryFilter"
-                class="w-full cursor-pointer rounded-xl px-5 py-3.5 text-slate-600 outline-none ring-indigo-500/30 transition focus:ring lg:w-auto lg:px-6 lg:py-4"
-            >
-                <option value="">All categories</option>
-                @foreach($categories as $category)
-                    <option value="{{ $category->id }}">{{ $category->name }}</option>
-                @endforeach
-            </select>
+                <div class="hidden h-10 w-px self-center bg-slate-200 lg:block" aria-hidden="true"></div>
 
-            <button
-                type="button"
-                wire:click="$refresh"
-                class="inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-8 py-3.5 font-semibold text-white transition-all hover:shadow-lg hover:shadow-indigo-200 lg:w-auto lg:py-4"
-            >
-                Search
-            </button>
-        </div>
+                <label class="sr-only" for="showroom-category">Category</label>
+                <select
+                    id="showroom-category"
+                    wire:model.live="categoryFilter"
+                    class="w-full cursor-pointer rounded-xl px-5 py-3.5 text-slate-600 outline-none ring-indigo-500/30 transition focus:ring lg:w-auto lg:px-6 lg:py-4"
+                >
+                    <option value="">All categories</option>
+                    @foreach($categories as $category)
+                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                    @endforeach
+                </select>
 
-        <div id="category-filters" class="scrollbar-hide mt-10 flex gap-3 overflow-x-auto pb-2" aria-label="Filters">
-            <button
-                type="button"
-                wire:click="$set('categoryFilter', '')"
-                class="rounded-full px-6 py-2 text-sm font-medium transition {{ $categoryFilter === '' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-400' }}"
-            >
-                All
-            </button>
-            @foreach($categories as $category)
                 <button
                     type="button"
-                    wire:click="$set('categoryFilter', '{{ $category->id }}')"
-                    class="rounded-full px-6 py-2 text-sm font-medium transition {{ (string) $categoryFilter === (string) $category->id ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-400' }}"
+                    wire:click="$refresh"
+                    class="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-8 py-3.5 font-semibold text-white transition-all hover:shadow-lg hover:shadow-slate-300 lg:w-auto lg:py-4"
                 >
-                    {{ $category->name }}
+                    Search
                 </button>
-            @endforeach
+            </div>
+
+            <div id="category-filters" class="showroom-stage-filters scrollbar-hide mt-7 flex gap-3 overflow-x-auto pb-2" aria-label="Filters">
+                <button
+                    type="button"
+                    wire:click="$set('categoryFilter', '')"
+                    class="rounded-full px-6 py-2 text-sm font-medium transition {{ $categoryFilter === '' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-400' }}"
+                >
+                    All
+                </button>
+                @foreach($categories as $category)
+                    <button
+                        type="button"
+                        wire:click="$set('categoryFilter', '{{ $category->id }}')"
+                        class="rounded-full px-6 py-2 text-sm font-medium transition {{ (string) $categoryFilter === (string) $category->id ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-400' }}"
+                    >
+                        {{ $category->name }}
+                    </button>
+                @endforeach
+            </div>
         </div>
     </section>
 
@@ -63,7 +78,11 @@
         @else
             <div class="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-2 sm:gap-8 xl:grid-cols-3">
                 @foreach($units as $unit)
-                    <a href="{{ route('unit.show', ['unit' => $unit->public_id]) }}" class="group block cursor-pointer">
+                    <a
+                        href="{{ route('unit.show', ['unit' => $unit->public_id]) }}"
+                        class="showroom-card-reveal group block cursor-pointer"
+                        style="--reveal-index: {{ $loop->index }};"
+                    >
                         <div class="relative mb-3 aspect-square overflow-hidden rounded-2xl bg-slate-200 sm:mb-4 sm:aspect-[4/5] sm:rounded-3xl">
                             @if($unit->images->isNotEmpty())
                                 <img

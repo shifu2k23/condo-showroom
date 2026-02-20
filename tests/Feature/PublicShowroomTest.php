@@ -8,6 +8,20 @@ test('public showroom returns 200', function () {
     $this->get(route('home'))->assertOk();
 });
 
+test('showroom route renders entrance animation shell', function () {
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertSee('data-showroom-entrance="overlay"', false);
+});
+
+test('unit detail route does not render showroom entrance shell', function () {
+    $unit = Unit::factory()->create();
+
+    $this->get(route('unit.show', ['unit' => $unit->public_id]))
+        ->assertOk()
+        ->assertDontSee('data-showroom-entrance="overlay"', false);
+});
+
 test('public pages do not expose login links', function () {
     $unit = Unit::factory()->create();
 
