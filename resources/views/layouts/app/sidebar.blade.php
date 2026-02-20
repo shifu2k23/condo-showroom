@@ -31,43 +31,17 @@
             ['label' => 'Profile', 'route' => 'profile.edit', 'active' => $isSettingsRoute, 'icon' => 'user'],
         ];
     @endphp
-    <body class="min-h-screen bg-slate-50 text-slate-900 antialiased">
-        <script>
-            (() => {
-                const applySettingsAppearance = () => {
-                    const isSettingsPath = window.location.pathname.includes('/settings');
-
-                    if (!isSettingsPath) {
-                        return;
-                    }
-
-                    try {
-                        window.localStorage.setItem('flux.appearance', 'light');
-                    } catch (e) {}
-
-                    document.documentElement.classList.remove('dark');
-                    document.documentElement.style.colorScheme = 'light';
-
-                    if (window.Flux && typeof window.Flux.applyAppearance === 'function') {
-                        window.Flux.applyAppearance('light');
-                    }
-                };
-
-                applySettingsAppearance();
-                document.addEventListener('livewire:navigated', applySettingsAppearance);
-            })();
-        </script>
-
-        <div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(79,70,229,0.08),transparent_55%)]"></div>
+    <body class="min-h-screen bg-slate-50 text-slate-900 antialiased transition-colors dark:bg-slate-950 dark:text-slate-100">
+        <div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(79,70,229,0.08),transparent_55%)] dark:bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.22),transparent_60%)]"></div>
 
         <div class="relative min-h-screen lg:flex">
-            <aside class="w-full border-b border-slate-200 bg-white lg:fixed lg:inset-y-0 lg:left-0 lg:w-64 lg:border-b-0 lg:border-r">
-                <div class="flex h-20 items-center border-b border-slate-200 px-6">
-                    <a href="{{ route('admin.dashboard') }}" wire:navigate class="inline-flex items-center gap-3 rounded-xl px-2 py-1.5 text-sm font-semibold text-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+            <aside class="w-full border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 lg:fixed lg:inset-y-0 lg:left-0 lg:w-64 lg:border-b-0 lg:border-r">
+                <div class="flex h-20 items-center border-b border-slate-200 px-6 dark:border-slate-800">
+                    <a href="{{ route('admin.dashboard') }}" wire:navigate class="inline-flex items-center gap-3 rounded-xl px-2 py-1.5 text-sm font-semibold text-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900">
                         @if ($brandLogoUrl)
                             <img src="{{ $brandLogoUrl }}" alt="{{ $brandName }}" class="h-9 w-9 rounded-xl object-cover" />
                         @else
-                            <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">{{ \Illuminate\Support\Str::of($brandName)->substr(0, 1)->upper() }}</span>
+                            <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300">{{ \Illuminate\Support\Str::of($brandName)->substr(0, 1)->upper() }}</span>
                         @endif
                         <span>{{ $brandName }}</span>
                     </a>
@@ -82,8 +56,9 @@
                                     wire:navigate
                                     @class([
                                         'group flex min-h-11 items-center gap-3 rounded-xl border-l-2 px-4 py-2.5 text-sm font-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white',
-                                        'border-indigo-600 bg-indigo-50 pl-3.5 font-semibold text-indigo-700' => $item['active'],
-                                        'border-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900' => ! $item['active'],
+                                        'dark:focus-visible:ring-offset-slate-900',
+                                        'border-indigo-600 bg-indigo-50 pl-3.5 font-semibold text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300' => $item['active'],
+                                        'border-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100' => ! $item['active'],
                                     ])
                                     @if ($item['active']) aria-current="page" @endif
                                 >
@@ -111,17 +86,17 @@
                     </ul>
                 </nav>
 
-                <div class="border-t border-slate-200 px-4 py-4 lg:mt-auto">
-                    <div class="hidden items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 lg:flex">
-                        <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-100 text-sm font-semibold text-indigo-700">{{ auth()->user()->initials() }}</span>
+                <div class="border-t border-slate-200 px-4 py-4 dark:border-slate-800 lg:mt-auto">
+                    <div class="hidden items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800 lg:flex">
+                        <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-100 text-sm font-semibold text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300">{{ auth()->user()->initials() }}</span>
                         <div class="min-w-0 flex-1">
-                            <p class="truncate text-sm font-medium text-slate-900">{{ auth()->user()->name }}</p>
-                            <p class="truncate text-xs text-slate-500">{{ auth()->user()->email }}</p>
+                            <p class="truncate text-sm font-medium text-slate-900 dark:text-slate-100">{{ auth()->user()->name }}</p>
+                            <p class="truncate text-xs text-slate-500 dark:text-slate-400">{{ auth()->user()->email }}</p>
                         </div>
                     </div>
                     <form method="POST" action="{{ route('logout') }}" class="mt-0 lg:mt-3">
                         @csrf
-                        <button type="submit" class="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:-translate-y-0.5 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+                        <button type="submit" class="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:-translate-y-0.5 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 dark:focus-visible:ring-offset-slate-900">
                             Log Out
                         </button>
                     </form>
@@ -130,26 +105,26 @@
 
             <div class="flex-1 lg:pl-64">
                 @unless ($isSettingsRoute)
-                    <header class="sticky top-0 z-20 border-b border-slate-200/90 bg-white/80 backdrop-blur">
+                    <header class="sticky top-0 z-20 border-b border-slate-200/90 bg-white/80 backdrop-blur dark:border-slate-800/90 dark:bg-slate-900/80">
                         <div class="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
                             <div class="flex items-center gap-2">
-                                <span class="text-xs uppercase tracking-[0.18em] text-slate-500">Admin Panel</span>
-                                <span class="text-slate-300">/</span>
-                                <h1 class="text-lg font-semibold text-slate-900">{{ $pageTitle }}</h1>
+                                <span class="text-xs uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Admin Panel</span>
+                                <span class="text-slate-300 dark:text-slate-600">/</span>
+                                <h1 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ $pageTitle }}</h1>
                             </div>
 
                             <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
                                 <div class="relative w-full sm:w-72">
-                                    <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m21 21-4.35-4.35m1.35-5.15a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z"/></svg>
-                                    <input type="search" placeholder="Search units by name" aria-label="Global search units (UI only)" class="h-11 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                                    <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m21 21-4.35-4.35m1.35-5.15a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z"/></svg>
+                                    <input type="search" placeholder="Search units by name" aria-label="Global search units (UI only)" class="h-11 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500">
                                 </div>
-                                <button type="button" aria-label="Notifications" class="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:-translate-y-0.5 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+                                <button type="button" aria-label="Notifications" class="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:-translate-y-0.5 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:focus-visible:ring-offset-slate-900">
                                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M15 17h5l-1.4-1.4a2 2 0 0 1-.6-1.42V11a6 6 0 1 0-12 0v3.18a2 2 0 0 1-.59 1.41L4 17h5m6 0a3 3 0 1 1-6 0m6 0H9"/></svg>
                                 </button>
-                                <button type="button" aria-label="User menu" class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition hover:-translate-y-0.5 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
-                                    <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700">{{ auth()->user()->initials() }}</span>
+                                <button type="button" aria-label="User menu" class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition hover:-translate-y-0.5 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 dark:focus-visible:ring-offset-slate-900">
+                                    <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300">{{ auth()->user()->initials() }}</span>
                                     <span class="hidden sm:inline">Account</span>
-                                    <svg class="h-4 w-4 text-slate-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.12l3.71-3.9a.75.75 0 1 1 1.08 1.04l-4.25 4.46a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd"/></svg>
+                                    <svg class="h-4 w-4 text-slate-500 dark:text-slate-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.12l3.71-3.9a.75.75 0 1 1 1.08 1.04l-4.25 4.46a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd"/></svg>
                                 </button>
                             </div>
                         </div>
