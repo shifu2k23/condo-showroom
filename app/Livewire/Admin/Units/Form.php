@@ -9,7 +9,9 @@ use App\Services\Ai\UnitDescriptionAiService;
 use App\Services\AuditLogger;
 use App\Services\ImageService;
 use App\Support\Tenancy\TenantManager;
+use App\Support\Tenancy\TenantCategoryDefaults;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -539,9 +541,10 @@ class Form extends Component
                 SORT_NATURAL | SORT_FLAG_CASE
             )
             ->all();
+        $categories = $this->tenantCategories();
 
         return view('livewire.admin.units.form', [
-            'categories' => Category::query()->orderBy('name')->get(),
+            'categories' => $categories,
             'existingImages' => $this->unit?->images()->orderBy('sort_order')->get() ?? collect(),
             'isEditMode' => $this->unit !== null,
             'davaoCondoLocationPresets' => $sortedDavaoCondoLocationPresets,
@@ -647,5 +650,26 @@ class Form extends Component
         }
 
         return Category::query()->whereKey($categoryId)->value('name');
+    }
+
+    /**
+     * @return Collection<int, Category>
+     */
+    private function tenantCategories(): Collection
+    {
+        $categories = Category::query()->orderBy('name')->get();
+        if ($categories->isNotEmpty()) {
+            return $categories;
+        }
+
+        $tenantId = app(TenantManager::class)->currentId();
+        if (! is_int($tenantId) || $tenantId <= 0) {
+            return $categories;
+        }
+
+        // Auto-heal legacy tenants that predate category default seeding.
+        app(TenantCategoryDefaults::class)->seedForTenant($tenantId);
+
+        return Category::query()->orderBy('name')->get();
     }
 }

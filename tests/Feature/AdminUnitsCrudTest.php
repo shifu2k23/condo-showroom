@@ -3,8 +3,10 @@
 use App\Livewire\Admin\Units\Form as UnitForm;
 use App\Livewire\Admin\Units\Index as UnitsIndex;
 use App\Models\Category;
+use App\Models\Tenant;
 use App\Models\Unit;
 use App\Models\User;
+use App\Support\Tenancy\TenantManager;
 use Livewire\Livewire;
 
 test('admin can create and update units', function () {
@@ -99,4 +101,62 @@ test('admin unit create form applies davao condo preset and updates coordinates'
         ->assertSet('latitude', '7.0908805')
         ->assertSet('longitude', '125.6097848')
         ->assertDispatched('leaflet-picker-set-coordinates');
+});
+
+test('unit create form auto-seeds default categories when tenant has none', function () {
+    $admin = User::factory()->admin()->create();
+    $this->actingAs($admin);
+
+    Category::query()->delete();
+
+    $this->assertDatabaseMissing('categories', [
+        'tenant_id' => $admin->tenant_id,
+        'name' => '1 Bedroom',
+    ]);
+
+    $this->get(route('admin.units.create'))
+        ->assertOk()
+        ->assertSee('1 Bedroom')
+        ->assertSee('2 Bedroom')
+        ->assertSee('Studio');
+
+    $this->assertDatabaseHas('categories', [
+        'tenant_id' => $admin->tenant_id,
+        'name' => '1 Bedroom',
+    ]);
+    $this->assertDatabaseHas('categories', [
+        'tenant_id' => $admin->tenant_id,
+        'name' => '2 Bedroom',
+    ]);
+    $this->assertDatabaseHas('categories', [
+        'tenant_id' => $admin->tenant_id,
+        'name' => 'Studio',
+    ]);
+});
+
+test('unit create form category dropdown is tenant isolated', function () {
+    $adminA = User::factory()->admin()->create();
+    $tenantB = Tenant::factory()->create(['slug' => 'tenant-b']);
+
+    $tenantACategory = Category::factory()->create([
+        'tenant_id' => $adminA->tenant_id,
+        'name' => 'Tenant A Exclusive',
+        'slug' => 'tenant-a-exclusive',
+    ]);
+
+    Category::query()
+        ->withoutGlobalScope('tenant')
+        ->create([
+            'tenant_id' => $tenantB->id,
+            'name' => 'Tenant B Exclusive',
+            'slug' => 'tenant-b-exclusive',
+        ]);
+
+    app(TenantManager::class)->setCurrent($adminA->tenant);
+
+    $this->actingAs($adminA)
+        ->get(route('admin.units.create'))
+        ->assertOk()
+        ->assertSee($tenantACategory->name)
+        ->assertDontSee('Tenant B Exclusive');
 });
