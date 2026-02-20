@@ -7,16 +7,15 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 #[Layout('layouts.super')]
 class Index extends Component
 {
-    public string $name = '';
+    private const DEFAULT_INITIAL_ADMIN_PASSWORD = '12345678';
 
-    public string $slug = '';
+    public string $name = '';
 
     public int $trialDays = 14;
 
@@ -32,7 +31,6 @@ class Index extends Component
     {
         $baseRules = [
             'name' => ['required', 'string', 'max:120'],
-            'slug' => ['nullable', 'string', 'max:80', 'alpha_dash', Rule::unique('tenants', 'slug')],
             'trialDays' => ['required', 'integer', 'min:1', 'max:3650'],
             'createAdmin' => ['required', 'boolean'],
         ];
@@ -49,10 +47,7 @@ class Index extends Component
         $generatedAdminEmail = null;
 
         DB::transaction(function () use ($validated, &$generatedAdminPassword, &$generatedAdminEmail): void {
-            $requestedSlug = trim((string) ($validated['slug'] ?? ''));
-            $tenantSlug = $requestedSlug !== ''
-                ? $requestedSlug
-                : $this->makeUniqueSlug(trim($validated['name']));
+            $tenantSlug = $this->makeUniqueSlug(trim($validated['name']));
 
             $tenant = Tenant::query()->create([
                 'name' => trim($validated['name']),
@@ -65,7 +60,7 @@ class Index extends Component
                 return;
             }
 
-            $generatedAdminPassword = Str::password(20);
+            $generatedAdminPassword = self::DEFAULT_INITIAL_ADMIN_PASSWORD;
             $generatedAdminEmail = strtolower(trim($validated['adminEmail']));
 
             User::query()->create([
@@ -79,7 +74,7 @@ class Index extends Component
             ]);
         });
 
-        $this->reset(['name', 'slug', 'adminName', 'adminEmail']);
+        $this->reset(['name', 'adminName', 'adminEmail']);
         $this->trialDays = 14;
         session()->flash('status', 'Tenant created successfully.');
 
@@ -117,7 +112,7 @@ class Index extends Component
 
     public function shareableTenantUrl(Tenant $tenant): string
     {
-        return rtrim((string) config('app.url'), '/').'/t/'.$tenant->slug;
+        return route('home', ['tenant' => $tenant->slug], absolute: true);
     }
 
     public function render()

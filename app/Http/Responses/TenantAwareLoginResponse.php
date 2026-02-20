@@ -16,11 +16,10 @@ class TenantAwareLoginResponse implements LoginResponse, TwoFactorLoginResponse
             return redirect()->intended(route('super.tenants.index'));
         }
 
-        $tenantSlug = $user?->tenant?->slug;
-        if (is_string($tenantSlug) && $tenantSlug !== '') {
-            return redirect()->intended(route('admin.dashboard', ['tenant' => $tenantSlug]));
+        if ($user?->tenant_id !== null) {
+            return redirect()->intended(route('admin.dashboard'));
         }
 
-        return redirect()->route('tenant.login.chooser');
+        return redirect()->route('login');
     }
 }

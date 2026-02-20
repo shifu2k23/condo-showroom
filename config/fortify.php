@@ -86,7 +86,7 @@ return [
     |
     */
 
-    'prefix' => 't/{tenant}',
+    'prefix' => '',
 
     'domain' => null,
 
@@ -101,7 +101,7 @@ return [
     |
     */
 
-    'middleware' => ['web', 'tenant'],
+    'middleware' => ['web'],
 
     /*
     |--------------------------------------------------------------------------

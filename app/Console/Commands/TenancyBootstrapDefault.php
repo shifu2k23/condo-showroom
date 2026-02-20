@@ -8,10 +8,11 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 
 class TenancyBootstrapDefault extends Command
 {
+    private const DEFAULT_INITIAL_ADMIN_PASSWORD = '12345678';
+
     protected $signature = 'tenancy:bootstrap-default
         {--slug=default : Default tenant slug}
         {--name=Default Tenant : Default tenant display name}
@@ -131,7 +132,7 @@ class TenancyBootstrapDefault extends Command
 
         $email = strtolower(trim((string) $this->option('admin-email')));
         $name = trim((string) $this->option('admin-name'));
-        $password = Str::password(20);
+        $password = self::DEFAULT_INITIAL_ADMIN_PASSWORD;
 
         if ($dryRun) {
             $this->line("[dry-run] Would create default tenant admin {$email}.");
@@ -150,7 +151,8 @@ class TenancyBootstrapDefault extends Command
         ]);
 
         $this->warn("Created default tenant admin: {$email}");
-        $this->warn("Generated password (shown once): {$password}");
+        $this->warn("Default password: {$password}");
+        $this->warn('Ask the admin to change it immediately after first login.');
     }
 
     /**

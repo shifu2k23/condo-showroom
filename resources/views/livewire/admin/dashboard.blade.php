@@ -35,6 +35,43 @@
         </div>
     </div>
 
+    @if($showroomLink || $renterAccessLink)
+        <section class="rounded-2xl border border-indigo-100 bg-white p-5 shadow-sm">
+            <div class="mb-4">
+                <h3 class="text-lg font-semibold text-slate-900">Shareable Links</h3>
+                <p class="mt-1 text-sm text-slate-500">Share these links publicly to open your tenant showroom directly.</p>
+            </div>
+
+            <div class="space-y-4">
+                @if($showroomLink)
+                    <div class="rounded-xl border border-slate-200 p-4">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Public Showroom</p>
+                        <div class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <input type="text" value="{{ $showroomLink }}" readonly class="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
+                            <div class="flex items-center gap-2">
+                                <a href="{{ $showroomLink }}" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-100">Open</a>
+                                <button type="button" onclick="navigator.clipboard.writeText('{{ $showroomLink }}')" class="inline-flex min-h-10 items-center justify-center rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white transition hover:bg-indigo-500">Copy</button>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                @if($renterAccessLink)
+                    <div class="rounded-xl border border-slate-200 p-4">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Renter Access</p>
+                        <div class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <input type="text" value="{{ $renterAccessLink }}" readonly class="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
+                            <div class="flex items-center gap-2">
+                                <a href="{{ $renterAccessLink }}" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-100">Open</a>
+                                <button type="button" onclick="navigator.clipboard.writeText('{{ $renterAccessLink }}')" class="inline-flex min-h-10 items-center justify-center rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white transition hover:bg-indigo-500">Copy</button>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </section>
+    @endif
+
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h3 class="mb-4 text-lg font-semibold text-slate-900">Recent Activity</h3>
