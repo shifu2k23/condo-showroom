@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MaintenanceTicket extends Model
 {
-    use HasFactory;
+    use BelongsToTenant, HasFactory;
 
     public const STATUS_OPEN = 'OPEN';
 
@@ -27,6 +28,7 @@ class MaintenanceTicket extends Model
     public const CATEGORY_OTHER = 'OTHER';
 
     protected $fillable = [
+        'tenant_id',
         'rental_id',
         'unit_id',
         'status',

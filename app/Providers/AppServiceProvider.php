@@ -13,6 +13,8 @@ use App\Policies\CategoryPolicy;
 use App\Policies\RentalPolicy;
 use App\Policies\UnitPolicy;
 use App\Policies\ViewingRequestPolicy;
+use App\Support\Tenancy\CurrentTenant;
+use App\Support\Tenancy\TenantManager;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +30,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(CurrentTenant::class);
+        $this->app->singleton(TenantManager::class);
     }
 
     /**
@@ -74,7 +77,18 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(AuditLog::class, AuditLogPolicy::class);
         Gate::policy(Rental::class, RentalPolicy::class);
 
-        Gate::define('access-admin', fn (User $user): bool => (bool) $user->is_admin);
-        Gate::define('view-admin-notifications', fn (User $user): bool => (bool) $user->is_admin);
+        Gate::define('access-admin', function (User $user): bool {
+            $tenant = app(TenantManager::class)->current();
+
+            return $user->isTenantAdminFor($tenant);
+        });
+
+        Gate::define('view-admin-notifications', function (User $user): bool {
+            $tenant = app(TenantManager::class)->current();
+
+            return $user->isTenantAdminFor($tenant);
+        });
+
+        Gate::define('access-super-admin', fn (User $user): bool => (bool) $user->is_super_admin && $user->tenant_id === null);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Unit extends Model
 {
-    use HasFactory, HasUlids, SoftDeletes;
+    use BelongsToTenant, HasFactory, HasUlids, SoftDeletes;
 
     public const STATUS_AVAILABLE = 'AVAILABLE';
 
@@ -28,6 +29,7 @@ class Unit extends Model
     public const ESTIMATOR_MONTHLY_ONLY = 'MONTHLY_ONLY';
 
     protected $fillable = [
+        'tenant_id',
         'public_id',
         'category_id',
         'name',

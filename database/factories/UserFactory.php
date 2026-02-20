@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Models\Tenant;
+use App\Support\Tenancy\TenantManager;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -23,10 +25,14 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        $tenantId = app(TenantManager::class)->currentId();
+
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
+            'tenant_id' => $tenantId ?? Tenant::factory(),
             'is_admin' => false,
+            'is_super_admin' => false,
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
@@ -62,6 +68,15 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'is_admin' => true,
+        ]);
+    }
+
+    public function superAdmin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'tenant_id' => null,
+            'is_admin' => false,
+            'is_super_admin' => true,
         ]);
     }
 }

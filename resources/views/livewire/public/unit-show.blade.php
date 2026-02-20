@@ -12,7 +12,7 @@
                     @if($unit->images->isNotEmpty())
                         <div class="aspect-video overflow-hidden bg-zinc-200 dark:bg-zinc-800">
                             <img
-                                src="{{ Storage::url($unit->images->first()->path) }}"
+                                src="{{ route('tenant.media.unit-images.show', ['unitImage' => $unit->images->first()]) }}"
                                 alt="{{ $unit->name }}"
                                 class="h-full w-full object-cover"
                             />
@@ -21,7 +21,7 @@
                             <div class="grid grid-cols-4 gap-2 p-3 sm:grid-cols-6">
                                 @foreach($unit->images as $image)
                                     <img
-                                        src="{{ Storage::url($image->path) }}"
+                                        src="{{ route('tenant.media.unit-images.show', ['unitImage' => $image]) }}"
                                         alt="{{ $unit->name }}"
                                         class="aspect-square rounded-md object-cover"
                                     />

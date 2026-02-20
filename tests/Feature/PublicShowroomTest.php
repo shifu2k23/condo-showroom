@@ -16,24 +16,25 @@ test('public pages do not expose login links', function () {
         ->assertDontSee('href="'.route('login', absolute: false).'"', false)
         ->assertDontSee('href="/admin"', false);
 
-    $this->get(route('unit.show', $unit))
+    $this->get(route('unit.show', ['unit' => $unit->public_id]))
         ->assertOk()
         ->assertDontSee('href="'.route('login', absolute: false).'"', false)
         ->assertDontSee('href="/admin"', false);
 });
 
-test('public showroom image URLs use storage-relative path', function () {
+test('public showroom image URLs use tenant media route', function () {
     $unit = Unit::factory()->create(['status' => Unit::STATUS_AVAILABLE]);
 
     UnitImage::factory()->create([
+        'tenant_id' => $unit->tenant_id,
         'unit_id' => $unit->id,
-        'path' => 'units/test/example.jpg',
+        'path' => "tenants/{$unit->tenant_id}/units/{$unit->id}/example.jpg",
         'sort_order' => 0,
     ]);
 
     $this->get(route('home'))
         ->assertOk()
-        ->assertSee('src="/storage/units/test/example.jpg"', false);
+        ->assertSee('/media/unit-images/', false);
 });
 
 test('showroom marks unit as rented when there is an active rental window', function () {

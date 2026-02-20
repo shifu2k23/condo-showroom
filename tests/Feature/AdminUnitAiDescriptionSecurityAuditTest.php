@@ -174,7 +174,7 @@ test('only admins can access ai generation path', function () {
 
     $nonAdmin = User::factory()->create(['is_admin' => false]);
     $this->actingAs($nonAdmin)
-        ->get(route('admin.units.edit', $unit))
+        ->get(route('admin.units.edit', ['unit' => $unit]))
         ->assertForbidden();
 });
 

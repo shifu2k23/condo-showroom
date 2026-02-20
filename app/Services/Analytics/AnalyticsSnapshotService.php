@@ -5,8 +5,10 @@ namespace App\Services\Analytics;
 use App\Models\AnalyticsSnapshot;
 use App\Models\MaintenanceTicket;
 use App\Models\Rental;
+use App\Models\Tenant;
 use App\Models\Unit;
 use App\Models\ViewingRequest;
+use App\Support\Tenancy\TenantManager;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
@@ -16,6 +18,7 @@ class AnalyticsSnapshotService
 {
     public function computeAndStore(string $periodType, CarbonInterface|string|null $referenceDate = null): AnalyticsSnapshot
     {
+        $tenantId = $this->resolveTenantId();
         $normalizedPeriodType = $this->normalizePeriodType($periodType);
         $resolvedReferenceDate = $this->resolveReferenceDate($referenceDate);
         [$periodStart, $periodEnd] = $this->resolvePeriodRange($normalizedPeriodType, $resolvedReferenceDate);
@@ -24,6 +27,7 @@ class AnalyticsSnapshotService
 
         return AnalyticsSnapshot::query()->updateOrCreate(
             [
+                'tenant_id' => $tenantId,
                 'period_type' => $normalizedPeriodType,
                 'period_start' => $periodStart->toDateString(),
                 'period_end' => $periodEnd->toDateString(),
@@ -36,11 +40,13 @@ class AnalyticsSnapshotService
 
     public function getOrCreateSnapshot(string $periodType, CarbonInterface|string|null $referenceDate = null): AnalyticsSnapshot
     {
+        $tenantId = $this->resolveTenantId();
         $normalizedPeriodType = $this->normalizePeriodType($periodType);
         $resolvedReferenceDate = $this->resolveReferenceDate($referenceDate);
         [$periodStart, $periodEnd] = $this->resolvePeriodRange($normalizedPeriodType, $resolvedReferenceDate);
 
         $existingSnapshot = AnalyticsSnapshot::query()
+            ->where('tenant_id', $tenantId)
             ->where('period_type', $normalizedPeriodType)
             ->whereDate('period_start', $periodStart->toDateString())
             ->whereDate('period_end', $periodEnd->toDateString())
@@ -54,9 +60,11 @@ class AnalyticsSnapshotService
      */
     public function recentSnapshots(string $periodType, int $limit = 8): Collection
     {
+        $tenantId = $this->resolveTenantId();
         $normalizedPeriodType = $this->normalizePeriodType($periodType);
 
         return AnalyticsSnapshot::query()
+            ->where('tenant_id', $tenantId)
             ->where('period_type', $normalizedPeriodType)
             ->orderByDesc('period_start')
             ->limit($limit)
@@ -316,5 +324,19 @@ class AnalyticsSnapshotService
 
         return 0.0;
     }
-}
 
+    private function resolveTenantId(): int
+    {
+        $tenantId = app(TenantManager::class)->currentId();
+        if ($tenantId !== null) {
+            return $tenantId;
+        }
+
+        $firstTenantId = Tenant::query()->value('id');
+        if (is_numeric($firstTenantId)) {
+            return (int) $firstTenantId;
+        }
+
+        throw new InvalidArgumentException('Tenant context is required to compute analytics snapshots.');
+    }
+}

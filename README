@@ -1,174 +1,251 @@
-You are a senior Laravel + Livewire engineer. Implement an ADMIN-ONLY AI Description Maker that reads uploaded unit images stored locally + unit location text and generates a preview description draft, then allows admin to click Apply to set the unit description.
+You are a senior Laravel + Livewire engineer. Implement path-based multi-tenancy (single database) for an existing Laravel app (Livewire, default auth, Pest, MySQL). Do NOT rebuild the app; add tenancy safely with minimal churn.
 
-STACK:
-- Laravel (latest stable)
-- Livewire (latest stable)
-- Laravel default auth already installed (admin logs in at /login)
-- Pest for tests
-- MySQL
-- Storage is local `public` disk (FILESYSTEM_DISK=public)
-- OpenAI API key already configured in .env and config/services.php (Step 1–3 done)
+GOAL:
+- Multiple tenant accounts (clients) in one app.
+- Each tenant has its own users/admins, categories, units, rentals, tickets, etc.
+- Public browsing has NO login button.
+- Admin login is still “hidden”: admin types /login in browser, BUT tenancy is path-based so we must support /t/{tenant_slug}/login as the true entry.
+- When super-admin creates a tenant, the app generates a tenant slug and shows a shareable link immediately:
+  https://<APP_URL>/t/<tenant_slug>
+- Strong isolation: tenant A cannot see tenant B data, including images.
+- Images must be tenant-isolated (no direct public folder guessing). Serve images through tenant-aware controller routes.
 
-ABSOLUTE SECURITY REQUIREMENTS:
-- NEVER expose OPENAI_API_KEY in any client-side code (Blade/Livewire/JS).
-- Backend calls only (server-to-server).
-- Do not log secrets.
-- Do not store raw base64 images in DB.
-- Rate limit the AI generation endpoint per admin user.
+IMPORTANT SECURITY REQUIREMENTS:
+- Enforce tenant scoping globally in Eloquent (prevent leaks).
+- Ensure all tenant-owned data has tenant_id and is indexed.
+- Ensure any route binding for tenant-owned resources verifies tenant ownership.
+- Images must not be directly publicly accessible across tenants. Use private disk storage + controller streaming.
+- Never expose API keys client-side.
 
-UX REQUIREMENT:
-- Admin clicks “Generate AI Description” -> sees preview -> can click “Apply” to copy into description textarea.
-- Do NOT auto-apply; preview first.
+ASSUMPTIONS:
+- Existing tables include: users (with is_admin), categories, units, unit_images, viewing_requests, rentals, maintenance_tickets, audit_logs, notifications, etc.
+- Units have images (unit_images table stores path/url currently).
+- App uses Vite build (CSS already handled).
 
-SCOPE:
-- Admin-only feature inside the existing Admin Unit Create/Edit page (Livewire form).
-- No changes to customer/public logic.
-
-========================================================
-1) DATA MODEL CHANGES (MIGRATION)
-========================================================
-Add optional AI draft fields to units table:
-- ai_description_draft (LONGTEXT, nullable)
-- ai_description_meta (JSON, nullable)  // store tone, length, model, generated_at
-- ai_description_generated_at (timestamp, nullable)
-
-Do NOT alter existing columns.
-
-========================================================
-2) ADMIN UNIT FORM UI (LIVEWIRE)
-========================================================
-In the Admin Unit Create/Edit Livewire component (e.g., AdminUnitForm):
-Add a new “AI Description” card/section containing:
-
-A) Controls:
-- Tone select: Luxury / Neutral / Friendly (default: Luxury)
-- Length select: Short / Medium / Long (default: Medium)
-- Button: “Generate AI Description”
-- Show a loading state while generating
-
-B) Preview:
-- Show ai_description_draft in a read-only preview box (formatted with paragraphs + bullets)
-- Buttons:
-  - “Apply to Description” (copies draft into description field)
-  - “Regenerate” (calls generation again)
-  - “Clear Draft” (sets draft to null)
-
-C) Validation behavior:
-- If unit has no images yet, show friendly error:
-  “Please upload at least 1 photo before generating.”
-- Require a location_text field (or existing location field) for better output:
-  If location missing, allow generation but include warning and ask admin to add location.
-
-Implementation details:
-- Use wire:click handlers.
-- Keep this admin-only; do not expose on public pages.
+DELIVERABLES:
+- Migrations
+- Tenant model + current tenant resolver
+- Middleware
+- Global scope trait
+- Route refactor under /t/{tenant:slug}
+- Super-admin tenant management UI (Livewire) with “Create Tenant” form and copyable link
+- Tenant admin user creation
+- Image storage refactor (private disk + streaming)
+- Pest tests for isolation (critical)
 
 ========================================================
-3) IMAGE INPUT STRATEGY (NO NGROK, LOCAL ONLY)
+1) DATABASE: tenants + tenant_id everywhere
 ========================================================
-Because images are local and not publicly accessible, implement vision input using base64:
-- Read the first N images (N=3 by default) from storage disk.
-- Convert each to data URL:
-  data:image/jpeg;base64,....
-- Only allow jpg/jpeg/png/webp.
-- Limit each image max size read to 2MB for prompt cost/performance.
-- If an image is larger than 2MB, downscale is optional; otherwise skip with a warning.
+Create migration: tenants table
+- id (bigint)
+- name (string)
+- slug (string unique index)
+- status (enum/string: ACTIVE, TRIAL, DISABLED) default TRIAL
+- trial_ends_at (timestamp nullable)
+- created_by (user_id nullable) index
+- created_at/updated_at
 
-Do NOT store base64 in DB. Generate base64 in memory only during request.
+Add tenant_id (FK/index) to tenant-owned tables (at minimum):
+- users (tenant_id nullable first, then enforce not null after backfill; index)
+- categories (tenant_id not null; index)
+- units (tenant_id not null; index)
+- unit_images (tenant_id not null; index)
+- viewing_requests (tenant_id not null; index)
+- rentals (tenant_id not null; index)
+- maintenance_tickets (tenant_id not null; index)
+- audit_logs (tenant_id not null; index)
+- analytics tables if present (tenant_id as needed)
 
-========================================================
-4) OPENAI INTEGRATION (BACKEND SERVICE)
-========================================================
-Create a service:
-- app/Services/Ai/UnitDescriptionAiService.php
+Add compound indexes where appropriate, e.g.:
+- units: (tenant_id, category_id, status, deleted_at)
+- categories: (tenant_id, name)
+- unit_images: (tenant_id, unit_id)
 
-Responsibilities:
-- build a strict prompt
-- call OpenAI API from backend only
-- request structured JSON output
-- parse and validate returned JSON
-- return a DTO-like array:
-  - tagline
-  - highlights[]
-  - full_description
-  - detected_visual_features[]
-  - warnings[] (optional)
-- convert result into a draft string formatted for textarea:
-  e.g.
-  Tagline line
-  Bullets
-  Paragraph(s)
+FK constraints:
+- tenant_id references tenants(id) cascade restrict
+- Ensure unit_images.tenant_id matches units.tenant_id via application-level enforcement (DB cannot easily enforce cross-table equality without triggers; enforce in code/tests).
 
-Model:
-- Use config('services.openai.model')
-
-OpenAI request must include:
-- text instructions with strong guardrails:
-  - “Do not invent amenities not visible or provided.”
-  - “If unsure, say ‘not specified’.”
-  - “No personal data.”
-  - “Output valid JSON only.”
-- include unit info: title/name, category, location text, known amenities (if exists), pricing mode (optional)
-- include image inputs as base64 data URLs
-
-Error handling:
-- If OpenAI fails, return controlled error message to UI.
-- No leaking provider response dumps to browser.
+Backfill plan:
+- Create one default tenant for existing data (e.g., “Default Tenant”, slug “default”).
+- Assign all existing rows tenant_id = defaultTenant.id.
+- Then enforce NOT NULL on tenant_id for tenant-owned tables.
 
 ========================================================
-5) RATE LIMITING (ADMIN)
+2) CURRENT TENANT CONTEXT (TenantResolver)
 ========================================================
-Protect generation to prevent abuse:
-- Per-admin user: 10 requests per minute
-Use RateLimiter::attempt() so failures count too.
+Create:
+- app/Support/Tenancy/CurrentTenant.php (stores current Tenant instance)
+- app/Support/Tenancy/TenantManager.php (set/get current tenant; throws if missing in tenant routes)
 
-Return a friendly UI message on throttling:
-“Too many attempts. Please try again in a minute.”
+Create middleware:
+- app/Http/Middleware/SetTenantFromPath.php
+Behavior:
+- Reads route parameter {tenant} (slug) from /t/{tenant:slug}
+- Loads Tenant model, ensures status != DISABLED
+- If trial_ends_at < now => treat as expired (block admin + public or show “Trial expired” page; implement configurable behavior)
+- Sets CurrentTenant in container (singleton)
+- Optionally sets a global view share: tenantName, tenantSlug
 
-========================================================
-6) AUDIT LOGGING
-========================================================
-If you have an audit logger, record:
-- action: AI_DESCRIPTION_GENERATED
-- user_id
-- unit_id
-- meta: tone, length, image_count used
-Do NOT log base64 or any raw image content.
+Register middleware alias: 'tenant'
 
 ========================================================
-7) PEST TESTS
+3) GLOBAL TENANT SCOPING (no data leaks)
 ========================================================
-Add tests:
-1) Non-admin cannot generate AI description (403)
-2) Admin can generate AI description when unit has images
-3) Validation fails when no images
-4) Rate limiting works (after N attempts => 429 or controlled error)
-5) “Apply” action updates Livewire description field (unit description not persisted until save, unless your form saves immediately)
+Create trait:
+- app/Models/Concerns/BelongsToTenant.php
+Includes:
+- bootBelongsToTenant(): add global scope where tenant_id = currentTenantId()
+- creating() hook sets tenant_id automatically if not set
+- Guard: if CurrentTenant is not set, DO NOT apply tenant scope for:
+  - CLI (artisan) migrations/seeds
+  - super-admin routes (see below)
+Implement a helper:
+- app()->runningInConsole() bypass
+- Or a config flag + context check.
 
-Mock OpenAI calls:
-- Do not call real OpenAI in tests.
-- Use Http::fake() and return a deterministic JSON.
+Apply this trait to tenant-owned models:
+- Category, Unit, UnitImage, ViewingRequest, Rental, MaintenanceTicket, AuditLog, etc.
+Users:
+- Users are tenant-bound for tenant admins.
+- Super-admin can be tenantless OR belongs to a special “platform” tenant. Choose:
+  - simplest: super-admin user has tenant_id = null and bypass scope in super-admin routes using a “tenancy disabled” middleware.
+Provide a clear approach and implement consistently.
 
 ========================================================
-8) IMPLEMENTATION DETAILS
+4) ROUTES (path-based tenancy)
 ========================================================
-- Use Laravel Http client (Http::withToken()).
-- Put OpenAI base URL in config or use standard.
-- Ensure requests use timeouts and retries responsibly.
-- Keep all secrets server-side.
-- Keep code clean and minimal.
+Refactor routes so all tenant-facing pages (public + admin) are under:
+- /t/{tenant:slug}/...
+
+Example:
+Route::prefix('t/{tenant:slug}')
+  ->middleware(['tenant'])
+  ->group(function () {
+     // Public showroom
+     GET / => TenantShowroomController or Livewire page
+     GET /units/{unit:public_id} => unit detail + slideshow
+     GET /media/unit-images/{unitImage:public_id} => streams image (see section 6)
+
+     // Hidden admin login inside tenant
+     GET /login => show login form (same Laravel auth, but tenant-aware)
+     POST /login => authenticate, then redirect to /t/{tenant}/admin
+
+     // Admin area
+     Route::prefix('admin')->middleware(['auth', 'verified', 'admin'])->group(...)
+  });
+
+Keep the “no login button” requirement by not linking to login on public pages.
+Admin can type:
+- /t/acme/login
+Optionally add a convenience redirect:
+- /login (global) => shows a minimal page asking for tenant slug (no public listing), then redirects to /t/{slug}/login.
+This still keeps login hidden from UI.
 
 ========================================================
-9) DELIVERABLES
+5) AUTHZ: admin per tenant + super admin
 ========================================================
-Provide:
-- Migration file
-- Updated Unit model (casts for ai_description_meta json)
-- UnitDescriptionAiService
-- Livewire component changes (properties + actions + blade view section)
-- Pest tests with Http::fake()
+Admin definition:
+- users.is_admin boolean already exists.
+Rules:
+- Tenant admin must have tenant_id set and is_admin=1.
+- Non-admin tenant users get 403 on /admin.
+- Super-admin: introduce users.is_super_admin boolean OR a role enum.
+  - Super-admin can create tenants and manage them.
+  - Super-admin UI lives OUTSIDE tenancy scope (no /t/{tenant}).
+Create middleware:
+- app/Http/Middleware/EnsureAdmin.php (checks is_admin)
+- app/Http/Middleware/EnsureSuperAdmin.php
 
-IMPORTANT:
-- Do NOT modify customer/public UI.
-- Do NOT expose keys in frontend.
-- Use preview then Apply workflow.
+Policies:
+- Ensure all unit mutations require both:
+  - is_admin
+  - tenant ownership enforced by global scope or explicit checks.
+
+========================================================
+6) TENANT-ISOLATED IMAGE STORAGE (no cross-tenant guessing)
+========================================================
+Do NOT store images in public where URLs can be guessed.
+
+Implement:
+- Use disk: local (private) for unit images (storage/app/private or storage/app/tenant-media)
+- Save paths like:
+  tenants/{tenant_id}/units/{unit_id}/{randomname}.webp
+
+Update unit_images table:
+- rename url -> path (or keep url but store relative path)
+- Add public_id (ULID) for each image to reference in URLs safely.
+- Add sort_order already exists.
+
+Serve images via controller route under tenant prefix:
+GET /t/{tenant}/media/unit-images/{unitImage:public_id}
+Implementation:
+- Load UnitImage by public_id
+- Verify unitImage.tenant_id == currentTenant.id (should be automatic via scope)
+- Stream file:
+  return Storage::disk('local')->response($unitImage->path);
+- Add cache headers (optional):
+  ->header('Cache-Control', 'public, max-age=86400')
+
+Update UI:
+- When rendering slideshow, use route('tenant.media.unit-image', [...]) not Storage::url().
+This ensures tenant isolation.
+
+========================================================
+7) SUPER-ADMIN TENANT MANAGEMENT (Livewire)
+========================================================
+Create a super-admin dashboard page:
+- /super/tenants
+Features:
+- List tenants: name, slug, status, trial_ends_at, created_at
+- Create tenant:
+  - name
+  - optional slug (auto-generate if blank)
+  - trial duration (e.g., 7/14/30 days)
+  - create initial tenant admin:
+    - email
+    - password (random generated + shown once)
+- After create: show “Tenant Link” with copy button:
+  https://<APP_URL>/t/<slug>
+- Actions:
+  - Disable tenant (status DISABLED)
+  - Extend trial
+  - Reset tenant admin password (optional)
+No public exposure of tenant list.
+
+========================================================
+8) SEEDING / EXISTING DATA MIGRATION
+========================================================
+Add an artisan command:
+- php artisan tenancy:bootstrap-default
+It:
+- Creates Default tenant
+- Backfills tenant_id for existing rows
+- Creates a default tenant admin user if needed
+
+Ensure migrations are safe for production (nullable then enforce).
+
+========================================================
+9) PEST TESTS (must)
+========================================================
+Add tests to guarantee no leaks:
+1) Tenant A cannot see Tenant B units (public)
+2) Tenant A admin cannot edit Tenant B unit (admin)
+3) Tenant scoping applies to Category, Rental, Ticket, Logs
+4) Media endpoint: Tenant A cannot access Tenant B image (should 404)
+5) Super-admin can create tenant and receives valid link and admin user
+
+Use factories:
+- TenantFactory
+- UserFactory (tenant admin)
+- UnitFactory (with images)
+
+========================================================
+10) OUTPUT
+========================================================
+Implement all code changes with:
+- exact files created/modified
+- migrations
+- minimal but clean refactors
+- no breaking changes to existing modules beyond adding tenant_id and route prefixes
+
+Return a concise list of what changed and where.

@@ -7,8 +7,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 test('image service stores relative image paths only', function () {
-    Storage::fake('public');
-    config(['filesystems.default' => 'public']);
+    Storage::fake('local');
 
     $unit = Unit::factory()->create();
     $file = UploadedFile::fake()->image('cover.jpg');
@@ -16,12 +15,13 @@ test('image service stores relative image paths only', function () {
     $path = app(ImageService::class)->storeUnitImage($file, $unit->id);
 
     UnitImage::create([
+        'tenant_id' => $unit->tenant_id,
         'unit_id' => $unit->id,
         'path' => $path,
         'sort_order' => 0,
     ]);
 
-    expect($path)->toStartWith("units/{$unit->id}/");
+    expect($path)->toStartWith("tenants/{$unit->tenant_id}/units/{$unit->id}/");
     expect($path)->not->toStartWith('http');
 
     $this->assertDatabaseHas('unit_images', [

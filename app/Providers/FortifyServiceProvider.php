@@ -4,11 +4,21 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
+use App\Http\Responses\TenantAwareLoginResponse;
+use App\Http\Responses\TenantAwareLogoutResponse;
+use App\Http\Responses\TenantAwareVerifyEmailResponse;
+use App\Models\User;
+use App\Support\Tenancy\TenantManager;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
+use Laravel\Fortify\Contracts\LogoutResponse as LogoutResponseContract;
+use Laravel\Fortify\Contracts\TwoFactorLoginResponse as TwoFactorLoginResponseContract;
+use Laravel\Fortify\Contracts\VerifyEmailResponse as VerifyEmailResponseContract;
 use Laravel\Fortify\Fortify;
 
 class FortifyServiceProvider extends ServiceProvider
@@ -18,7 +28,10 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(LoginResponseContract::class, TenantAwareLoginResponse::class);
+        $this->app->singleton(TwoFactorLoginResponseContract::class, TenantAwareLoginResponse::class);
+        $this->app->singleton(LogoutResponseContract::class, TenantAwareLogoutResponse::class);
+        $this->app->singleton(VerifyEmailResponseContract::class, TenantAwareVerifyEmailResponse::class);
     }
 
     /**
@@ -27,6 +40,7 @@ class FortifyServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureActions();
+        $this->configureAuthentication();
         $this->configureViews();
         $this->configureRateLimiting();
     }
@@ -38,6 +52,26 @@ class FortifyServiceProvider extends ServiceProvider
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::createUsersUsing(CreateNewUser::class);
+    }
+
+    private function configureAuthentication(): void
+    {
+        Fortify::authenticateUsing(function (Request $request): ?User {
+            $user = User::query()
+                ->where('email', $request->string('email')->lower()->toString())
+                ->first();
+
+            if (! $user || ! Hash::check($request->string('password')->toString(), $user->password)) {
+                return null;
+            }
+
+            $tenant = app(TenantManager::class)->current();
+            if ($tenant !== null && ! $user->is_super_admin && (int) $user->tenant_id !== (int) $tenant->getKey()) {
+                return null;
+            }
+
+            return $user;
+        });
     }
 
     /**

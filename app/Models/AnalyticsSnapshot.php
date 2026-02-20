@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class AnalyticsSnapshot extends Model
 {
-    use HasFactory;
+    use BelongsToTenant, HasFactory;
 
     public const PERIOD_DAY = 'DAY';
 
@@ -16,6 +17,7 @@ class AnalyticsSnapshot extends Model
     public const PERIOD_MONTH = 'MONTH';
 
     protected $fillable = [
+        'tenant_id',
         'period_type',
         'period_start',
         'period_end',
@@ -28,4 +30,3 @@ class AnalyticsSnapshot extends Model
         'metrics' => 'array',
     ];
 }
-

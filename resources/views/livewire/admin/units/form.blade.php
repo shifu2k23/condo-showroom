@@ -224,7 +224,7 @@
                     @foreach($existingImages as $image)
                         <div class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
                             <div class="flex items-center gap-3">
-                                <img src="{{ Storage::url($image->path) }}" alt="Unit image" class="h-14 w-14 rounded-lg object-cover">
+                                <img src="{{ route('tenant.media.unit-images.show', ['unitImage' => $image]) }}" alt="Unit image" class="h-14 w-14 rounded-lg object-cover">
                                 <div>
                                     <p class="text-sm text-slate-700">{{ $image->path }}</p>
                                     <p class="text-xs text-slate-500">sort_order: {{ $image->sort_order }}</p>
