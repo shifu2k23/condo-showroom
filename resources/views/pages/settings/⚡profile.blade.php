@@ -21,6 +21,7 @@ new class extends Component {
     public string $websiteName = '';
     public ?TemporaryUploadedFile $websiteLogo = null;
     public ?string $currentWebsiteLogo = null;
+    public string $showroomAppearance = 'light';
     public string $contactNumber = '';
     public string $contactFacebook = '';
     public string $contactGmail = '';
@@ -37,6 +38,9 @@ new class extends Component {
         $this->email = Auth::user()->email;
         $this->websiteName = AppSetting::get('site_name', config('app.name', 'Condo Showroom')) ?? config('app.name', 'Condo Showroom');
         $this->currentWebsiteLogo = AppSetting::get('site_logo_path');
+        $this->showroomAppearance = AppSetting::get('showroom_appearance', 'light') === 'dark'
+            ? 'dark'
+            : 'light';
         $this->contactNumber = AppSetting::get('contact_number', '') ?? '';
         $this->contactFacebook = AppSetting::get('contact_facebook', '') ?? '';
         $this->contactGmail = AppSetting::get('contact_gmail', '') ?? '';
@@ -92,6 +96,7 @@ new class extends Component {
         $validated = $this->validate([
             'websiteName' => ['required', 'string', 'max:80'],
             'websiteLogo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'showroomAppearance' => ['required', Rule::in(['light', 'dark'])],
         ]);
 
         $logoPath = $this->currentWebsiteLogo;
@@ -106,9 +111,11 @@ new class extends Component {
 
         AppSetting::put('site_name', trim($validated['websiteName']));
         AppSetting::put('site_logo_path', $logoPath);
+        AppSetting::put('showroom_appearance', $validated['showroomAppearance']);
 
         $this->websiteName = trim($validated['websiteName']);
         $this->currentWebsiteLogo = $logoPath;
+        $this->showroomAppearance = $validated['showroomAppearance'];
         $this->websiteLogo = null;
 
         $this->dispatch('branding-updated');
@@ -247,6 +254,12 @@ new class extends Component {
                         required
                         maxlength="80"
                     />
+
+                    <flux:select wire:model="showroomAppearance" :label="__('Showroom Theme')" required>
+                        <option value="light">{{ __('Light') }}</option>
+                        <option value="dark">{{ __('Dark') }}</option>
+                    </flux:select>
+                    <p class="-mt-2 text-xs text-zinc-500">{{ __('Applied to this tenant showroom only.') }}</p>
 
                     <div>
                         <label class="mb-2 block text-sm font-medium text-zinc-700">{{ __('Website Logo') }}</label>

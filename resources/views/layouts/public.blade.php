@@ -10,6 +10,11 @@
         $contactInstagram = \App\Models\AppSetting::get('contact_instagram', '') ?? '';
         $contactViber = \App\Models\AppSetting::get('contact_viber', '') ?? '';
         $contactTelegram = \App\Models\AppSetting::get('contact_telegram', '') ?? '';
+        $showroomAppearance = \App\Models\AppSetting::get('showroom_appearance', 'light') ?? 'light';
+        if (! in_array($showroomAppearance, ['light', 'dark'], true)) {
+            $showroomAppearance = 'light';
+        }
+        $showroomAppearanceClass = $showroomAppearance === 'dark' ? 'showroom-theme-dark dark' : 'showroom-theme-light';
         $isShowroomRoute = request()->routeIs('home');
     @endphp
     <head>
@@ -249,15 +254,15 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @fluxAppearance
     </head>
-    <body class="min-h-screen bg-slate-50 text-slate-900 antialiased [font-family:'Manrope',sans-serif] {{ $isShowroomRoute ? 'showroom-body' : '' }}">
-        <div class="relative min-h-screen bg-[radial-gradient(circle_at_10%_0%,rgba(99,102,241,0.16)_0%,rgba(248,250,252,0)_35%),radial-gradient(circle_at_90%_10%,rgba(14,165,233,0.12)_0%,rgba(248,250,252,0)_40%)] {{ $isShowroomRoute ? 'showroom-entrance-shell' : '' }}">
+    <body class="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100 [font-family:'Manrope',sans-serif] {{ $showroomAppearanceClass }} {{ $isShowroomRoute ? 'showroom-body' : '' }}">
+        <div class="relative min-h-screen bg-[radial-gradient(circle_at_10%_0%,rgba(99,102,241,0.16)_0%,rgba(248,250,252,0)_35%),radial-gradient(circle_at_90%_10%,rgba(14,165,233,0.12)_0%,rgba(248,250,252,0)_40%)] dark:bg-[radial-gradient(circle_at_10%_0%,rgba(99,102,241,0.22)_0%,rgba(2,6,23,0)_40%),radial-gradient(circle_at_90%_10%,rgba(14,165,233,0.18)_0%,rgba(2,6,23,0)_45%)] {{ $isShowroomRoute ? 'showroom-entrance-shell' : '' }}">
             @if ($isShowroomRoute)
                 <div class="showroom-entrance-overlay" data-showroom-entrance="overlay" aria-hidden="true">
                     <div class="showroom-entrance-mark">Curated Showroom</div>
                 </div>
             @endif
 
-            <nav class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/80 backdrop-blur-md {{ $isShowroomRoute ? 'showroom-nav-shell' : '' }}">
+            <nav class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/80 backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/80 {{ $isShowroomRoute ? 'showroom-nav-shell' : '' }}">
                 <div class="mx-auto max-w-7xl px-4 sm:px-6">
                     <div class="flex min-h-20 items-center justify-between gap-3 py-3">
                         <a href="{{ route('home') }}" class="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40">
@@ -269,24 +274,24 @@
                             <span class="text-lg font-bold tracking-tight sm:text-xl">{{ $brandName }}</span>
                         </a>
 
-                        <div class="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex" aria-label="Primary">
-                            <a href="{{ route('home') }}" class="transition hover:text-indigo-600">Showrooms</a>
-                            <a href="{{ route('home') }}#category-filters" class="transition hover:text-indigo-600">Categories</a>
-                            <a href="#contact" class="transition hover:text-indigo-600">Contact</a>
+                        <div class="hidden items-center gap-8 text-sm font-medium text-slate-600 dark:text-slate-300 md:flex" aria-label="Primary">
+                            <a href="{{ route('home') }}" class="transition hover:text-indigo-600 dark:hover:text-indigo-300">Showrooms</a>
+                            <a href="{{ route('home') }}#category-filters" class="transition hover:text-indigo-600 dark:hover:text-indigo-300">Categories</a>
+                            <a href="#contact" class="transition hover:text-indigo-600 dark:hover:text-indigo-300">Contact</a>
                         </div>
 
                         <a
                             href="{{ route('renter.access') }}"
-                            class="inline-flex min-h-11 items-center justify-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/40 sm:px-5"
+                            class="inline-flex min-h-11 items-center justify-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/40 dark:bg-indigo-500 dark:text-slate-950 dark:hover:bg-indigo-400 dark:focus-visible:ring-indigo-500/40 sm:px-5"
                         >
                             Renter Access
                         </a>
                     </div>
 
-                    <div class="flex items-center gap-4 pb-3 text-sm font-medium text-slate-600 md:hidden" aria-label="Primary">
-                        <a href="{{ route('home') }}" class="transition hover:text-indigo-600">Showrooms</a>
-                        <a href="{{ route('home') }}#category-filters" class="transition hover:text-indigo-600">Categories</a>
-                        <a href="#contact" class="transition hover:text-indigo-600">Contact</a>
+                    <div class="flex items-center gap-4 pb-3 text-sm font-medium text-slate-600 dark:text-slate-300 md:hidden" aria-label="Primary">
+                        <a href="{{ route('home') }}" class="transition hover:text-indigo-600 dark:hover:text-indigo-300">Showrooms</a>
+                        <a href="{{ route('home') }}#category-filters" class="transition hover:text-indigo-600 dark:hover:text-indigo-300">Categories</a>
+                        <a href="#contact" class="transition hover:text-indigo-600 dark:hover:text-indigo-300">Contact</a>
                     </div>
                 </div>
             </nav>
@@ -295,29 +300,29 @@
                 {{ $slot }}
             </main>
 
-            <footer id="contact" class="mt-16 border-t border-slate-200 bg-white/70">
+            <footer id="contact" class="mt-16 border-t border-slate-200 bg-white/70 dark:border-slate-800 dark:bg-slate-900/70">
                 <div class="mx-auto max-w-7xl px-6 py-8">
-                    <h2 class="text-base font-semibold text-slate-900">Contact</h2>
-                    <div class="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2 lg:grid-cols-3">
-                        <p><span class="font-medium text-slate-800">Contact Number:</span> {{ $contactNumber !== '' ? $contactNumber : 'Not set' }}</p>
+                    <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Contact</h2>
+                    <div class="mt-4 grid gap-2 text-sm text-slate-600 dark:text-slate-300 sm:grid-cols-2 lg:grid-cols-3">
+                        <p><span class="font-medium text-slate-800 dark:text-slate-100">Contact Number:</span> {{ $contactNumber !== '' ? $contactNumber : 'Not set' }}</p>
                         @if ($contactFacebook !== '')
-                            <p><span class="font-medium text-slate-800">Facebook:</span> {{ $contactFacebook }}</p>
+                            <p><span class="font-medium text-slate-800 dark:text-slate-100">Facebook:</span> {{ $contactFacebook }}</p>
                         @endif
                         @if ($contactGmail !== '')
-                            <p><span class="font-medium text-slate-800">Gmail:</span> <a href="mailto:{{ $contactGmail }}" class="text-indigo-600 hover:underline">{{ $contactGmail }}</a></p>
+                            <p><span class="font-medium text-slate-800 dark:text-slate-100">Gmail:</span> <a href="mailto:{{ $contactGmail }}" class="text-indigo-600 hover:underline dark:text-indigo-300">{{ $contactGmail }}</a></p>
                         @endif
                         @if ($contactInstagram !== '')
-                            <p><span class="font-medium text-slate-800">Instagram:</span> {{ $contactInstagram }}</p>
+                            <p><span class="font-medium text-slate-800 dark:text-slate-100">Instagram:</span> {{ $contactInstagram }}</p>
                         @endif
                         @if ($contactViber !== '')
-                            <p><span class="font-medium text-slate-800">Viber:</span> {{ $contactViber }}</p>
+                            <p><span class="font-medium text-slate-800 dark:text-slate-100">Viber:</span> {{ $contactViber }}</p>
                         @endif
                         @if ($contactTelegram !== '')
-                            <p><span class="font-medium text-slate-800">Telegram:</span> {{ $contactTelegram }}</p>
+                            <p><span class="font-medium text-slate-800 dark:text-slate-100">Telegram:</span> {{ $contactTelegram }}</p>
                         @endif
                     </div>
 
-                    <p class="mt-6 text-center text-sm text-slate-500">
+                    <p class="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
                         &copy; {{ date('Y') }} {{ $brandName }}.
                     </p>
                 </div>
