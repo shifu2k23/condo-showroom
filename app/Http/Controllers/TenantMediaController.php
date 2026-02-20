@@ -22,12 +22,30 @@ class TenantMediaController extends Controller
             abort(404);
         }
 
-        if (Storage::disk('local')->exists($path)) {
-            return Storage::disk('local')->response($path, headers: [
+        foreach ($this->candidateDisks() as $disk) {
+            if (! Storage::disk($disk)->exists($path)) {
+                continue;
+            }
+
+            return Storage::disk($disk)->response($path, headers: [
                 'Cache-Control' => 'private, max-age=300',
             ]);
         }
 
         abort(404);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function candidateDisks(): array
+    {
+        $configuredDisk = (string) config('filesystems.unit_images_disk', 'local');
+
+        return collect([$configuredDisk, 'local', 'public'])
+            ->filter(fn (string $disk): bool => config("filesystems.disks.{$disk}") !== null)
+            ->unique()
+            ->values()
+            ->all();
     }
 }

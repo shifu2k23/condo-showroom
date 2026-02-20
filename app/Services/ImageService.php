@@ -22,12 +22,12 @@ class ImageService
 
     public function delete(string $path): bool
     {
-        if (Storage::disk($this->disk())->exists($path)) {
-            return Storage::disk($this->disk())->delete($path);
-        }
+        foreach ($this->candidateDisks() as $disk) {
+            if (! Storage::disk($disk)->exists($path)) {
+                continue;
+            }
 
-        if (Storage::disk('public')->exists($path)) {
-            return Storage::disk('public')->delete($path);
+            return Storage::disk($disk)->delete($path);
         }
 
         return false;
@@ -47,6 +47,22 @@ class ImageService
 
     private function disk(): string
     {
-        return 'local';
+        $configuredDisk = (string) config('filesystems.unit_images_disk', 'local');
+
+        return config("filesystems.disks.{$configuredDisk}") !== null
+            ? $configuredDisk
+            : 'local';
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function candidateDisks(): array
+    {
+        return collect([$this->disk(), 'local', 'public'])
+            ->filter(fn (string $disk): bool => config("filesystems.disks.{$disk}") !== null)
+            ->unique()
+            ->values()
+            ->all();
     }
 }
