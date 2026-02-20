@@ -8,6 +8,12 @@ use App\Models\Rental;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\ViewingRequest;
+use App\Http\Middleware\EnsureAdmin;
+use App\Http\Middleware\EnsureRenterSessionIsActive;
+use App\Http\Middleware\EnsureSuperAdmin;
+use App\Http\Middleware\SetTenantFromAuthenticatedUser;
+use App\Http\Middleware\SetTenantFromPath;
+use App\Http\Middleware\TenancyDisabled;
 use App\Policies\AuditLogPolicy;
 use App\Policies\CategoryPolicy;
 use App\Policies\RentalPolicy;
@@ -22,6 +28,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -40,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureLivewirePersistentMiddleware();
         $this->configureAuthorization();
 
         if (app()->isProduction()) {
@@ -90,5 +98,17 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Gate::define('access-super-admin', fn (User $user): bool => (bool) $user->is_super_admin);
+    }
+
+    protected function configureLivewirePersistentMiddleware(): void
+    {
+        Livewire::addPersistentMiddleware([
+            SetTenantFromPath::class,
+            SetTenantFromAuthenticatedUser::class,
+            TenancyDisabled::class,
+            EnsureAdmin::class,
+            EnsureSuperAdmin::class,
+            EnsureRenterSessionIsActive::class,
+        ]);
     }
 }
