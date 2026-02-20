@@ -33,3 +33,13 @@ test('dashboard add unit control remains direct link to create form', function (
     $response->assertSee('Add Unit');
     $response->assertDontSee('Davao Condo Presets');
 });
+
+test('super admin hitting /dashboard is redirected to tenant management', function () {
+    $user = User::factory()->superAdmin()->create([
+        'email_verified_at' => now(),
+    ]);
+
+    $response = $this->actingAs($user)->get(route('dashboard'));
+
+    $response->assertRedirect(route('super.tenants.index'));
+});
