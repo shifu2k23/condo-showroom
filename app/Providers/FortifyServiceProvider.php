@@ -8,7 +8,6 @@ use App\Http\Responses\TenantAwareLoginResponse;
 use App\Http\Responses\TenantAwareLogoutResponse;
 use App\Http\Responses\TenantAwareVerifyEmailResponse;
 use App\Models\User;
-use App\Support\Tenancy\TenantManager;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -62,11 +61,6 @@ class FortifyServiceProvider extends ServiceProvider
                 ->first();
 
             if (! $user || ! Hash::check($request->string('password')->toString(), $user->password)) {
-                return null;
-            }
-
-            $tenant = app(TenantManager::class)->current();
-            if ($tenant !== null && ! $user->is_super_admin && (int) $user->tenant_id !== (int) $tenant->getKey()) {
                 return null;
             }
 

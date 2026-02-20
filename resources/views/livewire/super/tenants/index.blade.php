@@ -13,6 +13,7 @@
                 <p class="font-semibold">Initial tenant admin credentials (shown once)</p>
                 <p>Email: <span class="font-mono">{{ session('generated_admin_credentials.email') }}</span></p>
                 <p>Password: <span class="font-mono">{{ session('generated_admin_credentials.password') }}</span></p>
+                <p class="mt-1 text-xs text-amber-800">Default password is intentionally simple. Ask the tenant admin to change it immediately after first login via Settings -> Password.</p>
             </div>
         @endif
 
@@ -21,11 +22,6 @@
                 <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Tenant Name</label>
                 <input type="text" wire:model="name" class="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
                 @error('name') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-            </div>
-            <div>
-                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Slug</label>
-                <input type="text" wire:model="slug" class="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
-                @error('slug') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Trial Days</label>
@@ -85,7 +81,6 @@
                         <tr>
                             <td class="px-2 py-3">
                                 <p class="font-semibold text-slate-900">{{ $tenant->name }}</p>
-                                <p class="text-xs text-slate-500">{{ $tenant->slug }}</p>
                             </td>
                             <td class="px-2 py-3">
                                 @if($tenant->is_disabled)

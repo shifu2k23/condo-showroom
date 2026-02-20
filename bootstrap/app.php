@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth' => \App\Http\Middleware\Authenticate::class,
             'tenant' => \App\Http\Middleware\SetTenantFromPath::class,
+            'tenant.auth' => \App\Http\Middleware\SetTenantFromAuthenticatedUser::class,
             'tenancy.disabled' => \App\Http\Middleware\TenancyDisabled::class,
             'admin' => \App\Http\Middleware\EnsureAdmin::class,
             'super.admin' => \App\Http\Middleware\EnsureSuperAdmin::class,

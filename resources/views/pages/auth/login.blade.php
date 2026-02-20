@@ -93,7 +93,7 @@
 
                     <div class="relative hidden overflow-hidden bg-gradient-to-br from-emerald-700 via-emerald-600 to-emerald-800 lg:block">
                         <div class="relative z-20 flex items-center justify-end px-8 py-7 text-sm font-medium text-emerald-50/90">
-                            <a href="{{ route('home') }}" class="rounded-xl bg-white px-4 py-2 text-emerald-800 shadow-sm">{{ __('Back to site') }}</a>
+                            <a href="{{ route('landing') }}" class="rounded-xl bg-white px-4 py-2 text-emerald-800 shadow-sm">{{ __('Back to site') }}</a>
                         </div>
 
                         @if ($slides->isNotEmpty())

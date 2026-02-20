@@ -9,7 +9,6 @@ class TenantAwareLogoutResponse implements LogoutResponse
 {
     public function toResponse($request): RedirectResponse
     {
-        return redirect()->route('tenant.login.chooser');
+        return redirect()->route('login');
     }
 }
-

@@ -60,7 +60,6 @@ test('tenant A admin cannot edit tenant B unit', function () {
     $unitB = createTenantCategoryAndUnit($tenantB, 'B Unit');
 
     $response = $this->actingAs($adminA)->get(route('admin.units.edit', [
-        'tenant' => $tenantA->slug,
         'unit' => $unitB->public_id,
     ]));
 
@@ -186,7 +185,6 @@ test('super admin can create tenant with admin and sees shareable link', functio
     Livewire::actingAs($superAdmin)
         ->test(SuperTenantsIndex::class)
         ->set('name', 'Client One')
-        ->set('slug', 'client-one')
         ->set('trialDays', 30)
         ->set('createAdmin', true)
         ->set('adminName', 'Client Admin')
@@ -224,6 +222,6 @@ test('disabled tenant blocks public and admin routes', function () {
         ->assertNotFound();
 
     $this->actingAs($admin)
-        ->get(route('admin.dashboard', ['tenant' => $disabledTenant->slug]))
+        ->get(route('admin.dashboard'))
         ->assertNotFound();
 });

@@ -46,6 +46,14 @@ class Dashboard extends Component
             ->limit(10)
             ->get();
 
+        $tenantSlug = (string) (auth()->user()?->tenant?->slug ?? '');
+        $showroomLink = $tenantSlug !== ''
+            ? route('home', ['tenant' => $tenantSlug], absolute: true)
+            : null;
+        $renterAccessLink = $tenantSlug !== ''
+            ? route('renter.access', ['tenant' => $tenantSlug], absolute: true)
+            : null;
+
         return view('livewire.admin.dashboard', [
             'totalUnits' => $totalUnits,
             'availableUnits' => $availableUnits,
@@ -54,6 +62,8 @@ class Dashboard extends Component
             'requestsThisWeek' => $requestsThisWeek,
             'recentLogs' => $recentLogs,
             'upcomingViewings' => $upcomingViewings,
+            'showroomLink' => $showroomLink,
+            'renterAccessLink' => $renterAccessLink,
         ]);
     }
 }

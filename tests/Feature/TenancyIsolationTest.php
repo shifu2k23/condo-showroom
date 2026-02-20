@@ -6,6 +6,7 @@ use App\Models\Tenant;
 use App\Models\Unit;
 use App\Models\UnitImage;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
@@ -38,7 +39,7 @@ test('public showroom only shows units for current tenant', function () {
         ->assertDontSee($unitB->name);
 });
 
-test('tenant admin cannot access another tenant admin pages', function () {
+test('tenant admin dashboard data stays isolated to their tenant', function () {
     $tenantA = Tenant::factory()->create(['slug' => 'tenant-a']);
     $tenantB = Tenant::factory()->create(['slug' => 'tenant-b']);
 
@@ -51,13 +52,9 @@ test('tenant admin cannot access another tenant admin pages', function () {
     $unitB = createTenantUnit($tenantB, 'B Unit');
 
     $this->actingAs($adminA)
-        ->get(route('admin.units.index', ['tenant' => $tenantA->slug]))
+        ->get(route('admin.units.index'))
         ->assertOk()
         ->assertDontSee($unitB->name);
-
-    $this->actingAs($adminA)
-        ->get(route('admin.units.index', ['tenant' => $tenantB->slug]))
-        ->assertForbidden();
 });
 
 test('unit image media endpoint is tenant isolated', function () {
@@ -109,7 +106,6 @@ test('super admin can open tenant management and create tenant with initial admi
     Livewire::actingAs($superAdmin)
         ->test(SuperTenantsIndex::class)
         ->set('name', 'Client One')
-        ->set('slug', 'client-one')
         ->set('createAdmin', true)
         ->set('adminName', 'Client Admin')
         ->set('adminEmail', 'client-admin@example.com')
@@ -117,6 +113,7 @@ test('super admin can open tenant management and create tenant with initial admi
         ->assertHasNoErrors();
 
     $tenant = Tenant::query()->where('slug', 'client-one')->first();
+    $tenantAdmin = User::query()->where('email', 'client-admin@example.com')->first();
 
     expect($tenant)->not->toBeNull();
     $this->assertDatabaseHas('users', [
@@ -125,18 +122,17 @@ test('super admin can open tenant management and create tenant with initial admi
         'is_admin' => true,
         'is_super_admin' => false,
     ]);
+    expect($tenantAdmin)->not->toBeNull();
+    expect(Hash::check('12345678', (string) $tenantAdmin?->password))->toBeTrue();
 });
 
-test('login chooser redirects by provided tenant slug without exposing tenant list', function () {
+test('landing page does not expose tenant slug list and keeps login at /login', function () {
     Tenant::factory()->create(['name' => 'Tenant A', 'slug' => 'tenant-a']);
     Tenant::factory()->create(['name' => 'Tenant B', 'slug' => 'tenant-b']);
 
-    $this->get(route('tenant.login.chooser'))
+    $this->get(route('landing'))
         ->assertOk()
-        ->assertDontSee('/t/tenant-a/login')
-        ->assertDontSee('/t/tenant-b/login');
-
-    $this->post(route('tenant.login.redirect'), [
-        'tenant_slug' => 'tenant-a',
-    ])->assertRedirect(route('login', ['tenant' => 'tenant-a']));
+        ->assertSee('/login')
+        ->assertDontSee('tenant-a')
+        ->assertDontSee('tenant-b');
 });
