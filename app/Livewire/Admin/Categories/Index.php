@@ -4,8 +4,10 @@ namespace App\Livewire\Admin\Categories;
 
 use App\Models\Category;
 use App\Services\AuditLogger;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -25,38 +27,58 @@ class Index extends Component
 
     public function save(AuditLogger $auditLogger): void
     {
+        $tenantId = (int) (auth()->user()?->tenant_id ?? 0);
+        $nameUniqueRule = Rule::unique((new Category())->getTable(), 'name')
+            ->where(fn ($query) => $query->where('tenant_id', $tenantId));
+
+        if ($this->editingCategoryId !== null) {
+            $nameUniqueRule = $nameUniqueRule->ignore($this->editingCategoryId);
+        }
+
         $validated = $this->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', $nameUniqueRule],
+        ], [
+            'name.unique' => 'Category name already exists.',
         ]);
 
         $slug = $this->uniqueSlug($validated['name']);
 
-        if ($this->editingCategoryId) {
-            $category = Category::query()->findOrFail($this->editingCategoryId);
-            $this->authorize('update', $category);
-            $old = $category->only(['name', 'slug']);
+        try {
+            if ($this->editingCategoryId) {
+                $category = Category::query()->findOrFail($this->editingCategoryId);
+                $this->authorize('update', $category);
+                $old = $category->only(['name', 'slug']);
 
-            $category->update([
-                'name' => $validated['name'],
-                'slug' => $slug,
-            ]);
+                $category->update([
+                    'name' => $validated['name'],
+                    'slug' => $slug,
+                ]);
 
-            $auditLogger->log(
-                action: 'CATEGORY_UPDATED',
-                changes: ['before' => $old, 'after' => $category->only(['name', 'slug'])]
-            );
-        } else {
-            $this->authorize('create', Category::class);
+                $auditLogger->log(
+                    action: 'CATEGORY_UPDATED',
+                    changes: ['before' => $old, 'after' => $category->only(['name', 'slug'])]
+                );
+            } else {
+                $this->authorize('create', Category::class);
 
-            $category = Category::create([
-                'name' => $validated['name'],
-                'slug' => $slug,
-            ]);
+                $category = Category::create([
+                    'name' => $validated['name'],
+                    'slug' => $slug,
+                ]);
 
-            $auditLogger->log(
-                action: 'CATEGORY_CREATED',
-                changes: $category->only(['id', 'name', 'slug'])
-            );
+                $auditLogger->log(
+                    action: 'CATEGORY_CREATED',
+                    changes: $category->only(['id', 'name', 'slug'])
+                );
+            }
+        } catch (QueryException $exception) {
+            if ($this->isDuplicateKeyViolation($exception)) {
+                $this->addError('name', 'Category name already exists.');
+
+                return;
+            }
+
+            throw $exception;
         }
 
         $this->reset(['name', 'editingCategoryId']);
@@ -119,5 +141,15 @@ class Index extends Component
         }
 
         return $slug;
+    }
+
+    private function isDuplicateKeyViolation(QueryException $exception): bool
+    {
+        $sqlState = (string) ($exception->errorInfo[0] ?? '');
+        if ($sqlState === '23000' || $sqlState === '23505') {
+            return true;
+        }
+
+        return str_contains(strtolower($exception->getMessage()), 'duplicate');
     }
 }
