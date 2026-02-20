@@ -92,23 +92,45 @@
                     </div>
 
                     <div class="relative hidden overflow-hidden bg-gradient-to-br from-emerald-700 via-emerald-600 to-emerald-800 lg:block">
-                        <div class="relative z-20 flex items-center justify-between px-8 py-7 text-sm font-medium text-emerald-50/90">
-                            <div class="flex items-center gap-8">
-                                <span>{{ __('Dashboard') }}</span>
-                                <span>{{ __('Analytics') }}</span>
-                                <span>{{ __('Security') }}</span>
-                            </div>
+                        <div class="relative z-20 flex items-center justify-end px-8 py-7 text-sm font-medium text-emerald-50/90">
                             <a href="{{ route('home') }}" class="rounded-xl bg-white px-4 py-2 text-emerald-800 shadow-sm">{{ __('Back to site') }}</a>
                         </div>
 
                         @if ($slides->isNotEmpty())
-                            <img
-                                src="{{ $slides->first() }}"
-                                alt="{{ __('Admin portal preview image') }}"
-                                class="h-[calc(100%-72px)] w-full object-cover object-center"
-                                loading="lazy"
-                            />
-                            <div class="absolute inset-x-0 bottom-0 top-[72px] bg-gradient-to-t from-emerald-950/35 via-transparent to-transparent"></div>
+                            <div
+                                x-data="{ current: 0, total: {{ $slides->count() }}, init() { if (this.total > 1) { setInterval(() => { this.current = (this.current + 1) % this.total; }, 2500); } } }"
+                                class="relative h-[calc(100%-72px)] w-full"
+                            >
+                                @foreach ($slides as $index => $slide)
+                                    <div
+                                        x-show="current === {{ $index }}"
+                                        x-transition:enter="transform transition ease-out duration-700"
+                                        x-transition:enter-start="-translate-x-8 opacity-0"
+                                        x-transition:enter-end="translate-x-0 opacity-100"
+                                        x-transition:leave="transform transition ease-in duration-700 absolute inset-0"
+                                        x-transition:leave-start="translate-x-0 opacity-100"
+                                        x-transition:leave-end="translate-x-8 opacity-0"
+                                        class="absolute inset-0"
+                                    >
+                                        <img
+                                            src="{{ $slide }}"
+                                            alt="{{ __('Admin portal preview image') }} {{ $index + 1 }}"
+                                            class="h-full w-full object-cover object-center"
+                                            loading="lazy"
+                                        />
+                                        <div class="absolute inset-0 bg-gradient-to-t from-emerald-950/35 via-transparent to-transparent"></div>
+                                    </div>
+                                @endforeach
+
+                                <div class="absolute bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/20 px-3 py-1.5 backdrop-blur-sm">
+                                    @foreach ($slides as $index => $slide)
+                                        <span
+                                            class="h-2 w-2 rounded-full transition"
+                                            :class="current === {{ $index }} ? 'bg-white' : 'bg-white/40'"
+                                        ></span>
+                                    @endforeach
+                                </div>
+                            </div>
                         @else
                             <div class="absolute inset-0 grid place-content-center text-center text-emerald-100">
                                 <p class="text-lg font-semibold">{{ __('Admin access secured') }}</p>
