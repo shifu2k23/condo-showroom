@@ -124,8 +124,20 @@ Route::middleware(['auth', 'verified', 'tenant.auth', 'admin'])
         Route::get('/logs', AuditLogsIndex::class)->name('logs.index');
     });
 
-Route::middleware(['auth', 'verified', 'tenant.auth', 'admin'])
-    ->get('/dashboard', fn (): RedirectResponse => redirect()->route('admin.dashboard'))
+Route::middleware(['auth', 'verified'])
+    ->get('/dashboard', function (Request $request): RedirectResponse {
+        $user = $request->user();
+
+        if ($user?->is_super_admin) {
+            return redirect()->route('super.tenants.index');
+        }
+
+        if ($user?->is_admin) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        abort(403, 'Unauthorized action.');
+    })
     ->name('dashboard');
 
 Route::middleware('tenant.auth')->group(function (): void {
