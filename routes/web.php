@@ -78,6 +78,46 @@ Route::post('/login', function (Request $request): RedirectResponse {
     return redirect()->route('login', ['tenant' => $slug]);
 })->name('tenant.login.redirect');
 
+/*
+|--------------------------------------------------------------------------
+| Legacy Admin URL Compatibility
+|--------------------------------------------------------------------------
+*/
+$legacyAdminRedirect = function (Request $request, string $routeName, array $parameters = []): RedirectResponse {
+    $user = $request->user();
+
+    if ($user?->is_super_admin) {
+        return redirect()->route('super.tenants.index');
+    }
+
+    abort_unless(
+        $user !== null
+        && (bool) $user->is_admin
+        && is_string($user->tenant?->slug)
+        && $user->tenant->slug !== '',
+        403
+    );
+
+    return redirect()->route($routeName, array_merge(['tenant' => $user->tenant->slug], $parameters));
+};
+
+Route::middleware(['auth', 'verified'])
+    ->prefix('admin')
+    ->group(function () use ($legacyAdminRedirect): void {
+        Route::get('/', fn (Request $request): RedirectResponse => $legacyAdminRedirect($request, 'admin.dashboard'));
+        Route::get('/dashboard', fn (Request $request): RedirectResponse => $legacyAdminRedirect($request, 'admin.dashboard'));
+        Route::get('/units', fn (Request $request): RedirectResponse => $legacyAdminRedirect($request, 'admin.units.index'));
+        Route::get('/units/create', fn (Request $request): RedirectResponse => $legacyAdminRedirect($request, 'admin.units.create'));
+        Route::get('/units/{unit}/edit', fn (Request $request, string $unit): RedirectResponse => $legacyAdminRedirect($request, 'admin.units.edit', ['unit' => $unit]));
+        Route::get('/categories', fn (Request $request): RedirectResponse => $legacyAdminRedirect($request, 'admin.categories.index'));
+        Route::get('/viewing-requests', fn (Request $request): RedirectResponse => $legacyAdminRedirect($request, 'admin.viewing-requests.index'));
+        Route::get('/rentals', fn (Request $request): RedirectResponse => $legacyAdminRedirect($request, 'admin.rentals.index'));
+        Route::get('/rentals/create', fn (Request $request): RedirectResponse => $legacyAdminRedirect($request, 'admin.rentals.create'));
+        Route::get('/rentals/{rental}/edit', fn (Request $request, string $rental): RedirectResponse => $legacyAdminRedirect($request, 'admin.rentals.edit', ['rental' => $rental]));
+        Route::get('/analytics', fn (Request $request): RedirectResponse => $legacyAdminRedirect($request, 'admin.analytics.index'));
+        Route::get('/logs', fn (Request $request): RedirectResponse => $legacyAdminRedirect($request, 'admin.logs.index'));
+    });
+
 Route::prefix('t/{tenant:slug}')
     ->middleware('tenant')
     ->group(function (): void {
