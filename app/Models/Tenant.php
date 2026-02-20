@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Tenancy\TenantCategoryDefaults;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -29,6 +30,10 @@ class Tenant extends Model
             if ($tenant->slug === '' || $tenant->slug === null) {
                 $tenant->slug = Str::slug($tenant->name);
             }
+        });
+
+        static::created(function (Tenant $tenant): void {
+            app(TenantCategoryDefaults::class)->seedForTenant($tenant);
         });
     }
 

@@ -126,6 +126,30 @@ test('super admin can open tenant management and create tenant with initial admi
     expect(Hash::check('12345678', (string) $tenantAdmin?->password))->toBeTrue();
 });
 
+test('creating a tenant seeds default categories for that tenant', function () {
+    $superAdmin = User::factory()->superAdmin()->create([
+        'email_verified_at' => now(),
+    ]);
+
+    Livewire::actingAs($superAdmin)
+        ->test(SuperTenantsIndex::class)
+        ->set('name', 'Seeded Tenant')
+        ->set('createAdmin', true)
+        ->set('adminName', 'Seeded Admin')
+        ->set('adminEmail', 'seeded-admin@example.com')
+        ->call('createTenant')
+        ->assertHasNoErrors();
+
+    $tenant = Tenant::query()->where('slug', 'seeded-tenant')->firstOrFail();
+
+    foreach (['1 Bedroom', '2 Bedroom', 'Studio'] as $categoryName) {
+        $this->assertDatabaseHas('categories', [
+            'tenant_id' => $tenant->id,
+            'name' => $categoryName,
+        ]);
+    }
+});
+
 test('landing page does not expose tenant slug list and keeps login at /login', function () {
     Tenant::factory()->create(['name' => 'Tenant A', 'slug' => 'tenant-a']);
     Tenant::factory()->create(['name' => 'Tenant B', 'slug' => 'tenant-b']);
