@@ -88,3 +88,22 @@ test('showroom marks unit as reserved when rental starts in the future', functio
         ->assertSee('Reserved Unit Demo')
         ->assertSee('Reserved starting');
 });
+
+test('showroom displays explicit availability status text on unit cards', function () {
+    Unit::factory()->create([
+        'name' => 'Available Unit Demo',
+        'status' => Unit::STATUS_AVAILABLE,
+    ]);
+
+    Unit::factory()->create([
+        'name' => 'Unavailable Unit Demo',
+        'status' => Unit::STATUS_UNAVAILABLE,
+    ]);
+
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertSee('Available Unit Demo')
+        ->assertSee('Unavailable Unit Demo')
+        ->assertSee('Available')
+        ->assertSee('Unavailable');
+});

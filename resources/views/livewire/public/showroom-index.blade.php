@@ -78,6 +78,25 @@
         @else
             <div class="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-2 sm:gap-8 xl:grid-cols-3">
                 @foreach($units as $unit)
+                    @php
+                        $statusLabel = 'Available';
+                        $statusBadgeClasses = 'border-emerald-200 bg-emerald-50 text-emerald-800';
+                        $statusTextClasses = 'text-emerald-700';
+
+                        if ($unit->has_active_rental) {
+                            $statusLabel = 'Rented';
+                            $statusBadgeClasses = 'border-rose-200 bg-rose-50 text-rose-800';
+                            $statusTextClasses = 'text-rose-600';
+                        } elseif ($unit->status !== \App\Models\Unit::STATUS_AVAILABLE) {
+                            $statusLabel = 'Unavailable';
+                            $statusBadgeClasses = 'border-slate-300 bg-slate-100 text-slate-700';
+                            $statusTextClasses = 'text-slate-600';
+                        } elseif ($unit->has_upcoming_rental) {
+                            $statusLabel = 'Reserved';
+                            $statusBadgeClasses = 'border-amber-200 bg-amber-50 text-amber-800';
+                            $statusTextClasses = 'text-amber-700';
+                        }
+                    @endphp
                     <a
                         href="{{ route('unit.show', ['unit' => $unit->public_id]) }}"
                         class="showroom-card-reveal group block cursor-pointer"
@@ -97,16 +116,11 @@
                                 </div>
                             @endif
 
-                            <div class="absolute right-2 top-2 rounded-full bg-white/90 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider shadow-sm backdrop-blur sm:right-4 sm:top-4 sm:px-3 sm:text-[10px] sm:tracking-widest">
-                                @if($unit->has_active_rental)
-                                    Rented
-                                @elseif($unit->status !== \App\Models\Unit::STATUS_AVAILABLE)
-                                    Unavailable
-                                @elseif($unit->has_upcoming_rental)
-                                    Reserved
-                                @else
-                                    Available
-                                @endif
+                            <div @class([
+                                'absolute right-2 top-2 rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider shadow-sm backdrop-blur sm:right-4 sm:top-4 sm:px-3 sm:text-[10px] sm:tracking-widest',
+                                $statusBadgeClasses,
+                            ])>
+                                {{ $statusLabel }}
                             </div>
                         </div>
 
@@ -115,12 +129,18 @@
                                 <h2 class="text-base font-bold leading-tight text-slate-900 sm:text-lg">{{ $unit->name }}</h2>
                                 <p class="text-xs italic text-slate-500 sm:text-sm">{{ $unit->location ?: 'Location not provided' }}</p>
                                 <p class="mt-0.5 text-[10px] uppercase tracking-wide text-slate-400 sm:mt-1 sm:text-xs">{{ $unit->category?->name ?? 'Uncategorized' }}</p>
+                                <p @class([
+                                    'mt-1 text-xs font-semibold',
+                                    $statusTextClasses,
+                                ])>
+                                    {{ $statusLabel }}
+                                </p>
                                 @if($unit->has_active_rental && $unit->active_rental_ends_at)
-                                    <p class="mt-1 hidden text-xs text-rose-600 sm:block">
+                                    <p class="mt-1 text-xs text-rose-600">
                                         Rented until {{ \Carbon\Carbon::parse($unit->active_rental_ends_at)->format('M d, Y h:i A') }}
                                     </p>
                                 @elseif($unit->has_upcoming_rental && $unit->next_rental_starts_at)
-                                    <p class="mt-1 hidden text-xs text-amber-600 sm:block">
+                                    <p class="mt-1 text-xs text-amber-600">
                                         Reserved starting {{ \Carbon\Carbon::parse($unit->next_rental_starts_at)->format('M d, Y h:i A') }}
                                     </p>
                                 @endif
