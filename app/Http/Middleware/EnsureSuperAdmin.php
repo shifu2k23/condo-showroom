@@ -11,11 +11,10 @@ class EnsureSuperAdmin
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        if (! $user || ! $user->is_super_admin || $user->tenant_id !== null) {
+        if (! $user || ! $user->is_super_admin) {
             abort(403, 'Unauthorized action.');
         }
 
         return $next($request);
     }
 }
-

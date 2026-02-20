@@ -89,6 +89,6 @@ class AppServiceProvider extends ServiceProvider
             return $user->isTenantAdminFor($tenant);
         });
 
-        Gate::define('access-super-admin', fn (User $user): bool => (bool) $user->is_super_admin && $user->tenant_id === null);
+        Gate::define('access-super-admin', fn (User $user): bool => (bool) $user->is_super_admin);
     }
 }
