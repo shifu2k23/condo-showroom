@@ -58,8 +58,9 @@
                                     type="text"
                                     wire:model="rental_code"
                                     required
-                                    placeholder="XXXX-XXXX-XXXX"
+                                    placeholder="123456"
                                     autocomplete="one-time-code"
+                                    inputmode="numeric"
                                     class="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm tracking-[0.08em] text-slate-900 outline-none transition placeholder:tracking-normal focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200"
                                 />
                                 @error('rental_code') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror

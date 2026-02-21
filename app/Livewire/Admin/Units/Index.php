@@ -119,6 +119,12 @@ class Index extends Component
             $unit = Unit::query()->whereKey($unitId)->lockForUpdate()->firstOrFail();
             $this->authorize('setAvailability', $unit);
 
+            if ($status === Unit::STATUS_AVAILABLE && ! $unit->images()->exists()) {
+                session()->flash('status', 'Cannot set AVAILABLE: upload at least one unit image first.');
+
+                return;
+            }
+
             $oldStatus = $unit->status;
 
             if ($oldStatus === $status) {

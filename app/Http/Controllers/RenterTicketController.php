@@ -14,7 +14,7 @@ class RenterTicketController extends Controller
 {
     public function store(Request $request, RenterAccessService $renterAccess, AuditLogger $auditLogger): RedirectResponse
     {
-        $rental = $renterAccess->resolveRentalFromBrowserSession(allowExpiredRental: true);
+        $rental = $renterAccess->resolveRentalFromBrowserSession();
         if (! $rental) {
             $renterAccess->clearBrowserSession();
 

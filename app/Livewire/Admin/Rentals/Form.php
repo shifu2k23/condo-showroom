@@ -40,6 +40,8 @@ class Form extends Component
 
     public string $ends_at = '';
 
+    public bool $regenerate_access_code = false;
+
     /**
      * @var array<int, string>
      */
@@ -106,6 +108,7 @@ class Form extends Component
             'status' => ['required', 'in:'.Rental::STATUS_ACTIVE.','.Rental::STATUS_CANCELLED],
             'starts_at' => ['required', 'date'],
             'ends_at' => ['required', 'date', 'after:starts_at'],
+            'regenerate_access_code' => ['boolean'],
         ]);
 
         if ($this->hasOverlappingActiveRental($validated)) {
@@ -114,9 +117,33 @@ class Form extends Component
             return;
         }
 
+        $nextAccessCode = null;
+        $nextAccessCodeRaw = null;
+        if ($this->isEditing && (bool) ($validated['regenerate_access_code'] ?? false) === true) {
+            $nextAccessCode = $codes->generate();
+            $nextAccessCodeRaw = $codes->normalizeInput($nextAccessCode);
+
+            if ($nextAccessCodeRaw === null) {
+                $this->addError('renter_name', 'Unable to generate a secure access code. Please try again.');
+
+                return;
+            }
+        }
+
         if ($this->isEditing && $this->rentalRecord) {
-            $rental = DB::transaction(function () use ($validated): Rental {
+            $regeneratedPlainCode = null;
+            $rental = DB::transaction(function () use ($validated, $codes, $nextAccessCode, $nextAccessCodeRaw, &$regeneratedPlainCode): Rental {
                 $rental = $this->rentalRecord;
+
+                $codeUpdates = [];
+                if ($nextAccessCode !== null && $nextAccessCodeRaw !== null) {
+                    $regeneratedPlainCode = $nextAccessCode;
+                    $codeUpdates = [
+                        'public_code_hash' => Hash::make($regeneratedPlainCode),
+                        'public_code_last4' => $codes->last4FromRaw($nextAccessCodeRaw),
+                    ];
+                }
+
                 $rental->fill([
                     'unit_id' => $validated['unit_id'] !== null ? (int) $validated['unit_id'] : null,
                     'renter_name' => trim($validated['renter_name']),
@@ -131,7 +158,7 @@ class Form extends Component
                     'starts_at' => $validated['starts_at'],
                     'ends_at' => $validated['ends_at'],
                     'updated_by' => auth()->id(),
-                ]);
+                ] + $codeUpdates);
                 $rental->save();
 
                 return $rental->fresh(['unit']);
@@ -147,10 +174,16 @@ class Form extends Component
                     'starts_at' => optional($rental->starts_at)->toDateTimeString(),
                     'ends_at' => optional($rental->ends_at)->toDateTimeString(),
                     'status' => $rental->status,
+                    'access_code_regenerated' => $regeneratedPlainCode !== null,
                 ]
             );
 
-            session()->flash('status', 'Rental updated successfully.');
+            if ($regeneratedPlainCode !== null) {
+                session()->flash('issued_rental_code', $regeneratedPlainCode);
+                session()->flash('status', 'Rental updated and a new renter access code was generated.');
+            } else {
+                session()->flash('status', 'Rental updated successfully.');
+            }
         } else {
             $plainCode = $codes->generate();
             $rawCode = $codes->normalizeInput($plainCode);
@@ -196,7 +229,7 @@ class Form extends Component
             );
 
             session()->flash('issued_rental_code', $plainCode);
-            session()->flash('status', 'Rental created. Copy and hand the renter access code now; it will not be shown again.');
+            session()->flash('status', 'Rental created. Share the renter access code now.');
         }
 
         $this->redirectRoute('admin.rentals.index', navigate: true);

@@ -65,10 +65,19 @@ class UnitShow extends Component
 
     public function mount(Unit $unit): void
     {
+        $tenant = request()->route('tenant');
+        if (! $tenant || (int) $tenant->getKey() !== (int) $unit->tenant_id) {
+            abort(404);
+        }
+
         $this->unit = $unit->load([
             'category',
             'images' => fn ($query) => $query->orderBy('sort_order'),
         ]);
+
+        if ($this->unit->images->isEmpty()) {
+            abort(404);
+        }
 
         $this->formLoadedAt = now()->timestamp;
     }

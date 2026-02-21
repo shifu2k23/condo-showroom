@@ -29,13 +29,13 @@ test('admin rental creation generates one-time readable code and stores only has
 
     $issuedCode = session('issued_rental_code');
 
-    expect($issuedCode)->toMatch('/^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/');
+    expect($issuedCode)->toMatch('/^\d{6}$/');
 
     $rental = Rental::query()->latest('id')->firstOrFail();
     expect($rental->public_code_hash)->not->toBe($issuedCode);
     expect(Hash::check($issuedCode, $rental->public_code_hash))->toBeTrue();
 
-    $raw = preg_replace('/[^A-Z0-9]/', '', $issuedCode) ?? '';
+    $raw = preg_replace('/\D+/', '', $issuedCode) ?? '';
     expect($rental->public_code_last4)->toBe(substr($raw, -4));
     expect($rental->contact_number)->toBe('+63 912 345 6789');
 });
@@ -44,15 +44,15 @@ test('issued rental code is shown once on admin listing', function () {
     $admin = User::factory()->admin()->create();
     $this->actingAs($admin);
 
-    session()->flash('issued_rental_code', 'ABCD-EFGH-JKLM');
+    session()->flash('issued_rental_code', '123456');
 
     $this->get(route('admin.rentals.index'))
         ->assertOk()
-        ->assertSee('ABCD-EFGH-JKLM');
+        ->assertSee('123456');
 
     $this->get(route('admin.rentals.index'))
         ->assertOk()
-        ->assertDontSee('ABCD-EFGH-JKLM');
+        ->assertDontSee('123456');
 });
 
 test('admin can update renter details without regenerating access code', function () {
@@ -91,6 +91,34 @@ test('admin can update renter details without regenerating access code', functio
     expect($rental->status)->toBe(Rental::STATUS_CANCELLED);
     expect($rental->public_code_hash)->toBe($originalHash);
     expect($rental->public_code_last4)->toBe($originalLast4);
+});
+
+test('admin can regenerate renter access code while editing rental', function () {
+    $admin = User::factory()->admin()->create();
+    $this->actingAs($admin);
+
+    $rental = Rental::factory()->create([
+        'created_by' => $admin->id,
+        'updated_by' => $admin->id,
+        'public_code_hash' => Hash::make('111111'),
+        'public_code_last4' => '1111',
+    ]);
+
+    Livewire::test(RentalForm::class, ['rental' => $rental])
+        ->set('regenerate_access_code', true)
+        ->set('starts_at', now()->addHour()->format('Y-m-d\TH:i'))
+        ->set('ends_at', now()->addDays(2)->format('Y-m-d\TH:i'))
+        ->call('save')
+        ->assertHasNoErrors()
+        ->assertRedirect(route('admin.rentals.index', absolute: false));
+
+    $issuedCode = session('issued_rental_code');
+    expect($issuedCode)->toMatch('/^\d{6}$/');
+
+    $rental->refresh();
+    expect(Hash::check($issuedCode, $rental->public_code_hash))->toBeTrue();
+    expect($rental->public_code_last4)->toBe(substr($issuedCode, -4));
+    expect($rental->public_code_last4)->not->toBe('1111');
 });
 
 test('admin can delete rental from listing', function () {

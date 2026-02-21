@@ -8,6 +8,9 @@
         $brandName = \App\Models\AppSetting::get('site_name', config('app.name', 'Condo Showroom')) ?? config('app.name', 'Condo Showroom');
         $brandLogoPath = \App\Models\AppSetting::get('site_logo_path');
         $brandLogoUrl = $brandLogoPath ? \Illuminate\Support\Facades\Storage::url($brandLogoPath) : null;
+        $pendingViewingRequestsCount = auth()->user()?->is_admin
+            ? \App\Models\ViewingRequest::query()->where('status', \App\Models\ViewingRequest::STATUS_PENDING)->count()
+            : 0;
 
         $pageTitle = match (true) {
             request()->routeIs('admin.dashboard') => 'Dashboard',
@@ -21,14 +24,14 @@
             default => 'Admin',
         };
         $menuItems = [
-            ['label' => 'Dashboard', 'route' => 'admin.dashboard', 'active' => request()->routeIs('admin.dashboard'), 'icon' => 'home'],
-            ['label' => 'Units', 'route' => 'admin.units.index', 'active' => request()->routeIs('admin.units.*'), 'icon' => 'building'],
-            ['label' => 'Categories', 'route' => 'admin.categories.index', 'active' => request()->routeIs('admin.categories.*'), 'icon' => 'layers'],
-            ['label' => 'Viewing Requests', 'route' => 'admin.viewing-requests.index', 'active' => request()->routeIs('admin.viewing-requests.*'), 'icon' => 'calendar'],
-            ['label' => 'Rentals', 'route' => 'admin.rentals.index', 'active' => request()->routeIs('admin.rentals.*'), 'icon' => 'key'],
-            ['label' => 'Analytics', 'route' => 'admin.analytics.index', 'active' => request()->routeIs('admin.analytics.*'), 'icon' => 'chart'],
-            ['label' => 'Audit Logs', 'route' => 'admin.logs.index', 'active' => request()->routeIs('admin.logs.*'), 'icon' => 'clipboard'],
-            ['label' => 'Profile', 'route' => 'profile.edit', 'active' => $isSettingsRoute, 'icon' => 'user'],
+            ['label' => 'Dashboard', 'route' => 'admin.dashboard', 'active' => request()->routeIs('admin.dashboard'), 'icon' => 'home', 'badge' => null],
+            ['label' => 'Units', 'route' => 'admin.units.index', 'active' => request()->routeIs('admin.units.*'), 'icon' => 'building', 'badge' => null],
+            ['label' => 'Categories', 'route' => 'admin.categories.index', 'active' => request()->routeIs('admin.categories.*'), 'icon' => 'layers', 'badge' => null],
+            ['label' => 'Viewing Requests', 'route' => 'admin.viewing-requests.index', 'active' => request()->routeIs('admin.viewing-requests.*'), 'icon' => 'calendar', 'badge' => $pendingViewingRequestsCount > 0 ? (string) $pendingViewingRequestsCount : null],
+            ['label' => 'Rentals', 'route' => 'admin.rentals.index', 'active' => request()->routeIs('admin.rentals.*'), 'icon' => 'key', 'badge' => null],
+            ['label' => 'Analytics', 'route' => 'admin.analytics.index', 'active' => request()->routeIs('admin.analytics.*'), 'icon' => 'chart', 'badge' => null],
+            ['label' => 'Audit Logs', 'route' => 'admin.logs.index', 'active' => request()->routeIs('admin.logs.*'), 'icon' => 'clipboard', 'badge' => null],
+            ['label' => 'Profile', 'route' => 'profile.edit', 'active' => $isSettingsRoute, 'icon' => 'user', 'badge' => null],
         ];
     @endphp
     <body class="min-h-screen bg-slate-50 text-slate-900 antialiased transition-colors dark:bg-slate-950 dark:text-slate-100">
@@ -80,6 +83,11 @@
                                         <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 5.25h9a1.5 1.5 0 0 1 1.5 1.5v12a1.5 1.5 0 0 1-1.5 1.5H6a1.5 1.5 0 0 1-1.5-1.5v-9m4.5-4.5v4.5h-4.5m4.5-4.5L15 11.25"/></svg>
                                     @endif
                                     <span class="whitespace-nowrap">{{ $item['label'] }}</span>
+                                    @if (! empty($item['badge']))
+                                        <span class="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
+                                            {{ $item['badge'] }}
+                                        </span>
+                                    @endif
                                 </a>
                             </li>
                         @endforeach
@@ -118,8 +126,13 @@
                                     <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m21 21-4.35-4.35m1.35-5.15a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z"/></svg>
                                     <input type="search" placeholder="Search units by name" aria-label="Global search units (UI only)" class="h-11 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500">
                                 </div>
-                                <button type="button" aria-label="Notifications" class="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:-translate-y-0.5 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:focus-visible:ring-offset-slate-900">
+                                <button type="button" aria-label="Notifications" class="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:-translate-y-0.5 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:focus-visible:ring-offset-slate-900">
                                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M15 17h5l-1.4-1.4a2 2 0 0 1-.6-1.42V11a6 6 0 1 0-12 0v3.18a2 2 0 0 1-.59 1.41L4 17h5m6 0a3 3 0 1 1-6 0m6 0H9"/></svg>
+                                    @if($pendingViewingRequestsCount > 0)
+                                        <span class="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
+                                            {{ min($pendingViewingRequestsCount, 99) }}
+                                        </span>
+                                    @endif
                                 </button>
                                 <button type="button" aria-label="User menu" class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition hover:-translate-y-0.5 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 dark:focus-visible:ring-offset-slate-900">
                                     <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300">{{ auth()->user()->initials() }}</span>
@@ -167,8 +180,16 @@
         </div>
 
         @fluxScripts
-        <script>
+        <script data-navigate-once>
             (() => {
+                const initFlag = '__adminConfirmModalInitialized';
+
+                if (window[initFlag] === true) {
+                    return;
+                }
+
+                window[initFlag] = true;
+
                 const overlay = document.getElementById('admin-confirm-overlay');
                 const dialog = document.getElementById('admin-confirm-dialog');
                 const titleEl = document.getElementById('admin-confirm-title');

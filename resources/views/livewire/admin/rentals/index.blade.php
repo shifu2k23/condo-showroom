@@ -6,9 +6,9 @@
 
     @if ($issuedRentalCode)
         <div class="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 text-indigo-900">
-            <p class="text-sm font-semibold uppercase tracking-[0.14em]">Renter Access Code (shown once)</p>
+            <p class="text-sm font-semibold uppercase tracking-[0.14em]">Renter Access Code (one-time reveal)</p>
             <p class="mt-2 break-all font-mono text-xl tracking-[0.14em] sm:text-3xl sm:tracking-[0.22em]">{{ $issuedRentalCode }}</p>
-            <p class="mt-2 text-sm text-indigo-700">Print or hand this to the renter now. It cannot be recovered later.</p>
+            <p class="mt-2 text-sm text-indigo-700">Share this code with the renter now. If it is lost, generate a new code from Edit Rental.</p>
         </div>
     @endif
 
@@ -62,6 +62,9 @@
             </thead>
             <tbody>
                 @forelse($rentals as $rental)
+                    @php
+                        $isExpiredActive = $rental->status === \App\Models\Rental::STATUS_ACTIVE && $rental->ends_at && $rental->ends_at->isPast();
+                    @endphp
                     <tr class="border-b border-slate-200 text-slate-700 transition duration-150 hover:bg-slate-50">
                         <td class="px-4 py-3 font-medium text-slate-900">{{ $rental->renter_name }}</td>
                         <td class="px-4 py-3 text-slate-700">{{ $rental->contact_number ?: '-' }}</td>
@@ -73,7 +76,9 @@
                             <div class="text-slate-500">to {{ $rental->ends_at?->format('Y-m-d H:i') }}</div>
                         </td>
                         <td class="px-4 py-3">
-                            @if($rental->status === \App\Models\Rental::STATUS_ACTIVE)
+                            @if($isExpiredActive)
+                                <span class="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">EXPIRED</span>
+                            @elseif($rental->status === \App\Models\Rental::STATUS_ACTIVE)
                                 <span class="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">ACTIVE</span>
                             @else
                                 <span class="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">CANCELLED</span>

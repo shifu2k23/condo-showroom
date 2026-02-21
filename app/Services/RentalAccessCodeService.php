@@ -6,17 +6,17 @@ use InvalidArgumentException;
 
 class RentalAccessCodeService
 {
-    private const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    private const DIGITS = '0123456789';
 
-    private const RAW_LENGTH = 12;
+    private const RAW_LENGTH = 6;
 
     public function generate(): string
     {
         $raw = '';
-        $alphabetLength = strlen(self::ALPHABET);
+        $digitsLength = strlen(self::DIGITS);
 
         for ($index = 0; $index < self::RAW_LENGTH; $index++) {
-            $raw .= self::ALPHABET[random_int(0, $alphabetLength - 1)];
+            $raw .= self::DIGITS[random_int(0, $digitsLength - 1)];
         }
 
         return $this->formatFromRaw($raw);
@@ -24,13 +24,13 @@ class RentalAccessCodeService
 
     public function normalizeInput(string $value): ?string
     {
-        $normalized = strtoupper(preg_replace('/[^A-Z0-9]/i', '', $value) ?? '');
+        $normalized = preg_replace('/\D+/', '', $value) ?? '';
 
         if (strlen($normalized) !== self::RAW_LENGTH) {
             return null;
         }
 
-        if (strspn($normalized, self::ALPHABET) !== self::RAW_LENGTH) {
+        if (strspn($normalized, self::DIGITS) !== self::RAW_LENGTH) {
             return null;
         }
 
@@ -39,13 +39,13 @@ class RentalAccessCodeService
 
     public function formatFromRaw(string $raw): string
     {
-        $normalized = strtoupper($raw);
+        $normalized = preg_replace('/\D+/', '', $raw) ?? '';
 
         if (strlen($normalized) !== self::RAW_LENGTH) {
-            throw new InvalidArgumentException('Raw access code must be exactly 12 characters.');
+            throw new InvalidArgumentException('Raw access code must be exactly 6 digits.');
         }
 
-        return implode('-', str_split($normalized, 4));
+        return $normalized;
     }
 
     public function last4FromRaw(string $raw): string

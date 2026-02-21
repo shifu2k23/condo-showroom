@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Livewire;
 
 test('correct rental code grants renter portal access', function () {
-    $plainCode = 'ABCD-EFGH-JKLM';
+    $plainCode = '123456';
     $unit = Unit::factory()->create();
 
     $rental = Rental::factory()->create([
@@ -18,7 +18,7 @@ test('correct rental code grants renter portal access', function () {
         'renter_name' => 'Jane Doe',
         'id_type' => 'PASSPORT',
         'public_code_hash' => Hash::make($plainCode),
-        'public_code_last4' => 'JKLM',
+        'public_code_last4' => '3456',
         'status' => Rental::STATUS_ACTIVE,
         'starts_at' => now()->subHour(),
         'ends_at' => now()->addHour(),
@@ -46,8 +46,8 @@ test('wrong rental code is blocked', function () {
     Rental::factory()->create([
         'renter_name' => 'Jane Doe',
         'id_type' => 'PASSPORT',
-        'public_code_hash' => Hash::make('ABCD-EFGH-JKLM'),
-        'public_code_last4' => 'JKLM',
+        'public_code_hash' => Hash::make('123456'),
+        'public_code_last4' => '3456',
         'status' => Rental::STATUS_ACTIVE,
         'starts_at' => now()->subHour(),
         'ends_at' => now()->addHour(),
@@ -56,7 +56,7 @@ test('wrong rental code is blocked', function () {
     Livewire::test(RenterPortal::class)
         ->set('renter_name', 'Jane Doe')
         ->set('id_type', 'PASSPORT')
-        ->set('rental_code', 'ABCD-EFGH-AAAA')
+        ->set('rental_code', '999999')
         ->call('login')
         ->assertHasErrors(['rental_code']);
 });
@@ -65,8 +65,8 @@ test('expired rental code is blocked with professional message', function () {
     Rental::factory()->create([
         'renter_name' => 'Expired Renter',
         'id_type' => 'PASSPORT',
-        'public_code_hash' => Hash::make('WXYZ-BCDE-FGHJ'),
-        'public_code_last4' => 'FGHJ',
+        'public_code_hash' => Hash::make('654321'),
+        'public_code_last4' => '4321',
         'status' => Rental::STATUS_ACTIVE,
         'starts_at' => now()->subDays(2),
         'ends_at' => now()->subMinute(),
@@ -75,7 +75,7 @@ test('expired rental code is blocked with professional message', function () {
     Livewire::test(RenterPortal::class)
         ->set('renter_name', 'Expired Renter')
         ->set('id_type', 'PASSPORT')
-        ->set('rental_code', 'WXYZ-BCDE-FGHJ')
+        ->set('rental_code', '654321')
         ->call('login')
         ->assertHasErrors(['rental_code'])
         ->assertSee('Access unavailable. Our records show there is no active rental under these details.');
@@ -89,14 +89,14 @@ test('renter login is rate limited to five attempts per minute per ip', function
         Livewire::test(RenterPortal::class)
             ->set('renter_name', 'Rate Limited')
             ->set('id_type', 'PASSPORT')
-            ->set('rental_code', 'ABCD-EFGH-AAAA')
+            ->set('rental_code', '999999')
             ->call('login');
     }
 
     Livewire::test(RenterPortal::class)
         ->set('renter_name', 'Rate Limited')
         ->set('id_type', 'PASSPORT')
-        ->set('rental_code', 'ABCD-EFGH-AAAA')
+        ->set('rental_code', '999999')
         ->call('login')
         ->assertHasErrors(['rental_code'])
         ->assertSee('Too many login attempts');

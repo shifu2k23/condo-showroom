@@ -122,6 +122,11 @@
                             ])>
                                 {{ $statusLabel }}
                             </div>
+
+                            <div class="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/85 via-slate-900/35 to-transparent px-3 py-3 sm:px-4 sm:py-4">
+                                <p class="truncate text-sm font-extrabold tracking-tight text-white sm:text-base">{{ $unit->name }}</p>
+                                <p class="truncate text-[11px] text-slate-200 sm:text-xs">{{ $unit->location ?: 'Location not provided' }}</p>
+                            </div>
                         </div>
 
                         <div class="flex items-start justify-between gap-2 sm:gap-3">

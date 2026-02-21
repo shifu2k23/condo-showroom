@@ -37,6 +37,7 @@ class ShowroomIndex extends Component
         $now = CarbonImmutable::now();
 
         $units = Unit::query()
+            ->whereHas('images')
             ->with([
                 'category',
                 'images' => fn ($query) => $query->orderBy('sort_order'),

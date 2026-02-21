@@ -70,6 +70,9 @@ class Index extends Component
                     ]
                 );
 
+                // Keep deletion resilient even if foreign key cascade rules differ in production.
+                $rental->maintenanceTickets()->delete();
+                $rental->renterSessions()->delete();
                 $rental->delete();
             });
 

@@ -43,7 +43,7 @@ class RenterTickets extends Component
 
     public function mount(RenterAccessService $renterAccess): void
     {
-        $this->rental = $renterAccess->resolveRentalFromBrowserSession(allowExpiredRental: true);
+        $this->rental = $renterAccess->resolveRentalFromBrowserSession();
 
         if (session()->has('status')) {
             $this->statusMessage = (string) session('status');

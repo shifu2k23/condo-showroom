@@ -28,7 +28,7 @@ test('renter portal response disables browser caching', function () {
 });
 
 test('successful renter login regenerates session id and writes success audit log', function () {
-    $plainCode = 'ABCD-EFGH-JKLM';
+    $plainCode = '123456';
     $unit = Unit::factory()->create();
 
     $rental = Rental::factory()->create([
@@ -36,7 +36,7 @@ test('successful renter login regenerates session id and writes success audit lo
         'renter_name' => 'Jane Doe',
         'id_type' => 'PASSPORT',
         'public_code_hash' => Hash::make($plainCode),
-        'public_code_last4' => 'JKLM',
+        'public_code_last4' => '3456',
         'status' => Rental::STATUS_ACTIVE,
         'starts_at' => now()->subHour(),
         'ends_at' => now()->addHour(),
@@ -58,7 +58,7 @@ test('successful renter login regenerates session id and writes success audit lo
     $log = AuditLog::query()->where('action', 'RENTER_LOGIN_SUCCESS')->latest('id')->first();
     expect($log)->not->toBeNull();
     expect($log?->changes['rental_id'])->toBe($rental->id);
-    expect($log?->changes['code_last4'])->toBe('JKLM');
+    expect($log?->changes['code_last4'])->toBe('3456');
     expect($log?->changes['renter_session_id'])->toBeInt();
     expect($log?->changes)->not->toHaveKey('rental_code');
     expect($log?->changes)->not->toHaveKey('public_code_hash');
@@ -68,8 +68,8 @@ test('failed renter login writes audit log without leaking full code', function 
     Rental::factory()->create([
         'renter_name' => 'Jane Doe',
         'id_type' => 'PASSPORT',
-        'public_code_hash' => Hash::make('ABCD-EFGH-JKLM'),
-        'public_code_last4' => 'JKLM',
+        'public_code_hash' => Hash::make('123456'),
+        'public_code_last4' => '3456',
         'status' => Rental::STATUS_ACTIVE,
         'starts_at' => now()->subHour(),
         'ends_at' => now()->addHour(),
@@ -78,19 +78,19 @@ test('failed renter login writes audit log without leaking full code', function 
     Livewire::test(RenterPortal::class)
         ->set('renter_name', 'Jane Doe')
         ->set('id_type', 'PASSPORT')
-        ->set('rental_code', 'ABCD-EFGH-AAAA')
+        ->set('rental_code', '999999')
         ->call('login')
         ->assertHasErrors(['rental_code']);
 
     $log = AuditLog::query()->where('action', 'RENTER_LOGIN_FAILED')->latest('id')->first();
     expect($log)->not->toBeNull();
     expect($log?->changes['reason'])->toBe('credential_mismatch');
-    expect($log?->changes['code_last4_input'])->toBe('AAAA');
-    expect(json_encode($log?->changes, JSON_THROW_ON_ERROR))->not->toContain('ABCD-EFGH-AAAA');
+    expect($log?->changes['code_last4_input'])->toBe('9999');
+    expect(json_encode($log?->changes, JSON_THROW_ON_ERROR))->not->toContain('999999');
 });
 
 test('renter logout clears renter session data', function () {
-    $plainCode = 'ABCD-EFGH-JKLM';
+    $plainCode = '123456';
     $unit = Unit::factory()->create();
 
     $rental = Rental::factory()->create([
@@ -98,7 +98,7 @@ test('renter logout clears renter session data', function () {
         'renter_name' => 'Jane Doe',
         'id_type' => 'PASSPORT',
         'public_code_hash' => Hash::make($plainCode),
-        'public_code_last4' => 'JKLM',
+        'public_code_last4' => '3456',
         'status' => Rental::STATUS_ACTIVE,
         'starts_at' => now()->subHour(),
         'ends_at' => now()->addHour(),

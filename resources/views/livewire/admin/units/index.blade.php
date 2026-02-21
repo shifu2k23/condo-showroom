@@ -1,4 +1,10 @@
 <div class="space-y-7">
+    @if (session('status'))
+        <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+            {{ session('status') }}
+        </div>
+    @endif
+
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 class="text-2xl font-semibold tracking-tight text-slate-900">Units</h2>
         <a href="{{ route('admin.units.create') }}" wire:navigate class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50">Add Unit</a>

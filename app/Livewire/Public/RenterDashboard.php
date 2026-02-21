@@ -16,7 +16,7 @@ class RenterDashboard extends Component
 
     public function mount(RenterAccessService $renterAccess): void
     {
-        $this->rental = $renterAccess->resolveRentalFromBrowserSession(allowExpiredRental: true);
+        $this->rental = $renterAccess->resolveRentalFromBrowserSession();
     }
 
     public function logout(RenterAccessService $renterAccess): void

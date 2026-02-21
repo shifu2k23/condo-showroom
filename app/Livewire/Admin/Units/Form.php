@@ -8,9 +8,10 @@ use App\Models\UnitImage;
 use App\Services\Ai\UnitDescriptionAiService;
 use App\Services\AuditLogger;
 use App\Services\ImageService;
-use App\Support\Tenancy\TenantManager;
 use App\Support\Tenancy\TenantCategoryDefaults;
+use App\Support\Tenancy\TenantManager;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
@@ -270,41 +271,61 @@ class Form extends Component
             return;
         }
 
+        if ($this->status === Unit::STATUS_AVAILABLE && ! $this->hasAtLeastOneImage()) {
+            $this->addError('newImages', 'Upload at least one image before setting this unit to AVAILABLE.');
+
+            return;
+        }
+
         $wasNew = $this->unit === null;
         $existingUnit = $this->unit;
 
-        $unit = DB::transaction(function () use ($validated): Unit {
-            $payload = [
-                'name' => $validated['name'],
-                'slug' => $this->generateUniqueSlug($validated['name']),
-                'category_id' => (int) $validated['category_id'],
-                'location' => $validated['location'] ?: null,
-                'latitude' => isset($validated['latitude']) ? (float) $validated['latitude'] : null,
-                'longitude' => isset($validated['longitude']) ? (float) $validated['longitude'] : null,
-                'address_text' => $validated['address_text'] ?: null,
-                'description' => $validated['description'] ?: null,
-                'ai_description_draft' => $this->ai_description_draft ?: null,
-                'ai_description_meta' => $this->ai_description_meta,
-                'ai_description_generated_at' => $this->ai_description_generated_at,
-                'status' => $validated['status'],
-                'nightly_price_php' => $validated['nightly_price_php'],
-                'monthly_price_php' => $validated['monthly_price_php'],
-                'price_display_mode' => $validated['price_display_mode'],
-                'estimator_mode' => $validated['estimator_mode'],
-                'allow_estimator' => (bool) $validated['allow_estimator'],
-                'updated_by' => auth()->id(),
-            ];
+        try {
+            $unit = DB::transaction(function () use ($validated): Unit {
+                $payload = [
+                    'name' => $validated['name'],
+                    'slug' => $this->generateUniqueSlug($validated['name']),
+                    'category_id' => (int) $validated['category_id'],
+                    'location' => $validated['location'] ?: null,
+                    'latitude' => isset($validated['latitude']) ? (float) $validated['latitude'] : null,
+                    'longitude' => isset($validated['longitude']) ? (float) $validated['longitude'] : null,
+                    'address_text' => $validated['address_text'] ?: null,
+                    'description' => $validated['description'] ?: null,
+                    'ai_description_draft' => $this->ai_description_draft ?: null,
+                    'ai_description_meta' => $this->ai_description_meta,
+                    'ai_description_generated_at' => $this->ai_description_generated_at,
+                    'status' => $validated['status'],
+                    'nightly_price_php' => $validated['nightly_price_php'],
+                    'monthly_price_php' => $validated['monthly_price_php'],
+                    'price_display_mode' => $validated['price_display_mode'],
+                    'estimator_mode' => $validated['estimator_mode'],
+                    'allow_estimator' => (bool) $validated['allow_estimator'],
+                    'updated_by' => auth()->id(),
+                ];
 
-            if ($this->unit === null) {
-                $payload['created_by'] = auth()->id();
+                if ($this->unit === null) {
+                    $payload['created_by'] = auth()->id();
 
-                return Unit::create($payload);
+                    return Unit::create($payload);
+                }
+
+                $this->unit->update($payload);
+
+                return $this->unit->fresh();
+            });
+        } catch (QueryException $exception) {
+            report($exception);
+
+            if ($this->isUniqueConstraintViolation($exception)) {
+                $this->addError('name', 'A unit with the same generated slug already exists. Please try a slightly different unit name.');
+
+                return;
             }
 
-            $this->unit->update($payload);
+            $this->addError('name', 'Unable to save this unit right now. Please try again.');
 
-            return $this->unit->fresh();
-        });
+            return;
+        }
 
         $this->unit = $unit->load('images');
 
@@ -587,7 +608,7 @@ class Form extends Component
         $counter = 1;
 
         while (
-            Unit::query()
+            Unit::withTrashed()
                 ->where('slug', $slug)
                 ->when($this->unit, fn ($query) => $query->whereKeyNot($this->unit->id))
                 ->exists()
@@ -624,6 +645,24 @@ class Form extends Component
         $imageService->reorderUnitImages($this->unit->id, $orderedIds);
 
         $this->unit->refresh()->load('images');
+    }
+
+    private function hasAtLeastOneImage(): bool
+    {
+        $existingImageCount = $this->unit?->images()->count() ?? 0;
+
+        return $existingImageCount + count($this->newImages) > 0;
+    }
+
+    private function isUniqueConstraintViolation(QueryException $exception): bool
+    {
+        $sqlState = (string) ($exception->errorInfo[0] ?? '');
+
+        if (in_array($sqlState, ['23000', '23505'], true)) {
+            return true;
+        }
+
+        return str_contains(strtolower($exception->getMessage()), 'unique');
     }
 
     /**

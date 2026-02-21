@@ -24,7 +24,7 @@ class RenterAccessService
         $normalizedRawCode = $this->codes->normalizeInput($rentalCode);
         if ($normalizedRawCode === null) {
             throw ValidationException::withMessages([
-                'rental_code' => 'Please enter a valid rental access code (format: XXXX-XXXX-XXXX).',
+                'rental_code' => 'Please enter a valid rental access code (6 digits).',
             ]);
         }
 

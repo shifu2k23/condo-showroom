@@ -29,8 +29,9 @@
                             </div>
                         @endif
                     @else
-                        <div class="flex aspect-video items-center justify-center bg-zinc-200 text-zinc-400 dark:bg-zinc-800">
+                        <div class="flex aspect-video flex-col items-center justify-center gap-2 bg-zinc-200 text-zinc-400 dark:bg-zinc-800">
                             <flux:icon.photo class="h-12 w-12" />
+                            <p class="text-sm font-medium">No images uploaded yet.</p>
                         </div>
                     @endif
                 </section>

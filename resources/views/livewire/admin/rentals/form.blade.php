@@ -68,9 +68,19 @@
         </div>
 
         @if($isEditing)
-            <p class="text-sm text-slate-500">Access code remains unchanged when editing. Use status and dates to correct rental records.</p>
+            <div class="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p class="text-sm text-slate-600">
+                    Current access code hint:
+                    <span class="font-mono font-semibold text-slate-900">****{{ $rentalRecord?->public_code_last4 ?? '----' }}</span>
+                </p>
+                <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+                    <input type="checkbox" wire:model="regenerate_access_code" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/40" />
+                    Generate a new one-time access code when updating this renter
+                </label>
+                <p class="text-xs text-slate-500">Enable this only when the renter forgot the code and you need to resend a new one.</p>
+            </div>
         @else
-            <p class="text-sm text-slate-500">A secure rental code will be generated and shown once after save.</p>
+            <p class="text-sm text-slate-500">A one-time 6-digit rental code will be generated and shown once after save.</p>
         @endif
 
         <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
