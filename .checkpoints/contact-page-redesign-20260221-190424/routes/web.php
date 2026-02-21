@@ -16,7 +16,6 @@ use App\Livewire\Public\RenterDashboard;
 use App\Livewire\Public\RenterPortal;
 use App\Livewire\Public\RenterTickets;
 use App\Livewire\Public\ShowroomIndex;
-use App\Livewire\Public\ContactPage;
 use App\Livewire\Public\UnitShow;
 use App\Livewire\Super\Tenants\Index as SuperTenantsIndex;
 use Illuminate\Http\RedirectResponse;
@@ -65,7 +64,6 @@ Route::prefix('t/{tenant:slug}')
             ->name('tenant.legacy.login');
 
         Route::get('/', ShowroomIndex::class)->name('home');
-        Route::get('/contact', ContactPage::class)->name('contact');
         Route::get('/units/{unit:public_id}', UnitShow::class)->name('unit.show');
         Route::get('/renter/access', RenterPortal::class)->middleware('no-store')->name('renter.access');
         Route::post('/renter/access', [RenterAccessController::class, 'store'])->middleware('no-store')->name('renter.access.store');

@@ -4,6 +4,12 @@
         $brandName = \App\Models\AppSetting::get('site_name', config('app.name', 'Condo Showroom')) ?? config('app.name', 'Condo Showroom');
         $brandLogoPath = \App\Models\AppSetting::get('site_logo_path');
         $brandLogoUrl = $brandLogoPath ? \Illuminate\Support\Facades\Storage::url($brandLogoPath) : null;
+        $contactNumber = \App\Models\AppSetting::get('contact_number', '') ?? '';
+        $contactFacebook = \App\Models\AppSetting::get('contact_facebook', '') ?? '';
+        $contactGmail = \App\Models\AppSetting::get('contact_gmail', '') ?? '';
+        $contactInstagram = \App\Models\AppSetting::get('contact_instagram', '') ?? '';
+        $contactViber = \App\Models\AppSetting::get('contact_viber', '') ?? '';
+        $contactTelegram = \App\Models\AppSetting::get('contact_telegram', '') ?? '';
         $showroomAppearance = \App\Models\AppSetting::get('showroom_appearance', 'light') ?? 'light';
         if (! in_array($showroomAppearance, ['light', 'dark'], true)) {
             $showroomAppearance = 'light';
@@ -271,7 +277,7 @@
                         <div class="hidden items-center gap-8 text-sm font-medium text-slate-600 dark:text-slate-300 md:flex" aria-label="Primary">
                             <a href="{{ route('home') }}" class="transition hover:text-indigo-600 dark:hover:text-indigo-300">Showrooms</a>
                             <a href="{{ route('home') }}#category-filters" class="transition hover:text-indigo-600 dark:hover:text-indigo-300">Categories</a>
-                            <a href="{{ route('contact') }}" class="transition hover:text-indigo-600 dark:hover:text-indigo-300">Contact</a>
+                            <a href="#contact" class="transition hover:text-indigo-600 dark:hover:text-indigo-300">Contact</a>
                         </div>
 
                         <a
@@ -285,7 +291,7 @@
                     <div class="flex items-center gap-4 pb-3 text-sm font-medium text-slate-600 dark:text-slate-300 md:hidden" aria-label="Primary">
                         <a href="{{ route('home') }}" class="transition hover:text-indigo-600 dark:hover:text-indigo-300">Showrooms</a>
                         <a href="{{ route('home') }}#category-filters" class="transition hover:text-indigo-600 dark:hover:text-indigo-300">Categories</a>
-                        <a href="{{ route('contact') }}" class="transition hover:text-indigo-600 dark:hover:text-indigo-300">Contact</a>
+                        <a href="#contact" class="transition hover:text-indigo-600 dark:hover:text-indigo-300">Contact</a>
                     </div>
                 </div>
             </nav>
@@ -294,19 +300,31 @@
                 {{ $slot }}
             </main>
 
-            <footer class="mt-16 border-t border-slate-200 bg-white/70 dark:border-slate-800 dark:bg-slate-900/70">
+            <footer id="contact" class="mt-16 border-t border-slate-200 bg-white/70 dark:border-slate-800 dark:bg-slate-900/70">
                 <div class="mx-auto max-w-7xl px-6 py-8">
-                    <div class="flex flex-col items-center justify-between gap-3 text-sm sm:flex-row">
-                        <p class="text-slate-500 dark:text-slate-400">
-                            &copy; {{ date('Y') }} {{ $brandName }}.
-                        </p>
-                        <a
-                            href="{{ route('contact') }}"
-                            class="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 font-semibold text-slate-700 transition hover:border-indigo-400 hover:text-indigo-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-indigo-400 dark:hover:text-indigo-300"
-                        >
-                            Contact Page
-                        </a>
+                    <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Contact</h2>
+                    <div class="mt-4 grid gap-2 text-sm text-slate-600 dark:text-slate-300 sm:grid-cols-2 lg:grid-cols-3">
+                        <p><span class="font-medium text-slate-800 dark:text-slate-100">Contact Number:</span> {{ $contactNumber !== '' ? $contactNumber : 'Not set' }}</p>
+                        @if ($contactFacebook !== '')
+                            <p><span class="font-medium text-slate-800 dark:text-slate-100">Facebook:</span> {{ $contactFacebook }}</p>
+                        @endif
+                        @if ($contactGmail !== '')
+                            <p><span class="font-medium text-slate-800 dark:text-slate-100">Gmail:</span> <a href="mailto:{{ $contactGmail }}" class="text-indigo-600 hover:underline dark:text-indigo-300">{{ $contactGmail }}</a></p>
+                        @endif
+                        @if ($contactInstagram !== '')
+                            <p><span class="font-medium text-slate-800 dark:text-slate-100">Instagram:</span> {{ $contactInstagram }}</p>
+                        @endif
+                        @if ($contactViber !== '')
+                            <p><span class="font-medium text-slate-800 dark:text-slate-100">Viber:</span> {{ $contactViber }}</p>
+                        @endif
+                        @if ($contactTelegram !== '')
+                            <p><span class="font-medium text-slate-800 dark:text-slate-100">Telegram:</span> {{ $contactTelegram }}</p>
+                        @endif
                     </div>
+
+                    <p class="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
+                        &copy; {{ date('Y') }} {{ $brandName }}.
+                    </p>
                 </div>
             </footer>
         </div>
