@@ -81,20 +81,20 @@
                     @php
                         $statusLabel = 'Available';
                         $statusBadgeClasses = 'border-emerald-200 bg-emerald-50 text-emerald-800';
-                        $statusTextClasses = 'text-emerald-700';
+                        $statusTextClasses = 'text-emerald-700 dark:text-emerald-400';
 
                         if ($unit->has_active_rental) {
                             $statusLabel = 'Rented';
                             $statusBadgeClasses = 'border-rose-200 bg-rose-50 text-rose-800';
-                            $statusTextClasses = 'text-rose-600';
+                            $statusTextClasses = 'text-rose-600 dark:text-rose-400';
                         } elseif ($unit->status !== \App\Models\Unit::STATUS_AVAILABLE) {
                             $statusLabel = 'Unavailable';
                             $statusBadgeClasses = 'border-slate-300 bg-slate-100 text-slate-700';
-                            $statusTextClasses = 'text-slate-600';
+                            $statusTextClasses = 'text-slate-600 dark:text-slate-300';
                         } elseif ($unit->has_upcoming_rental) {
                             $statusLabel = 'Reserved';
                             $statusBadgeClasses = 'border-amber-200 bg-amber-50 text-amber-800';
-                            $statusTextClasses = 'text-amber-700';
+                            $statusTextClasses = 'text-amber-700 dark:text-amber-400';
                         }
                     @endphp
                     <a
@@ -124,16 +124,16 @@
                             </div>
 
                             <div class="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/85 via-slate-900/35 to-transparent px-3 py-3 sm:px-4 sm:py-4">
-                                <p class="truncate text-sm font-extrabold tracking-tight text-white sm:text-base">{{ $unit->name }}</p>
+                                <p class="truncate text-xs font-semibold uppercase tracking-wide text-slate-100 sm:text-sm">{{ $unit->category?->name ?? 'Uncategorized' }}</p>
                                 <p class="truncate text-[11px] text-slate-200 sm:text-xs">{{ $unit->location ?: 'Location not provided' }}</p>
                             </div>
                         </div>
 
-                        <div class="flex items-start justify-between gap-2 sm:gap-3">
+                        <div class="flex items-start justify-between gap-2 rounded-2xl border border-slate-200/70 bg-white/90 p-2.5 shadow-sm sm:gap-3 sm:p-3 dark:border-slate-700/80 dark:bg-slate-900/80">
                             <div>
-                                <h2 class="text-base font-bold leading-tight text-slate-900 sm:text-lg">{{ $unit->name }}</h2>
-                                <p class="text-xs italic text-slate-500 sm:text-sm">{{ $unit->location ?: 'Location not provided' }}</p>
-                                <p class="mt-0.5 text-[10px] uppercase tracking-wide text-slate-400 sm:mt-1 sm:text-xs">{{ $unit->category?->name ?? 'Uncategorized' }}</p>
+                                <h2 class="text-lg font-extrabold leading-tight tracking-tight text-slate-900 sm:text-xl dark:text-slate-100">{{ $unit->name }}</h2>
+                                <p class="text-sm italic text-slate-600 sm:text-base dark:text-slate-300">{{ $unit->location ?: 'Location not provided' }}</p>
+                                <p class="mt-0.5 text-xs uppercase tracking-wide text-slate-500 sm:mt-1 dark:text-slate-400">{{ $unit->category?->name ?? 'Uncategorized' }}</p>
                                 <p @class([
                                     'mt-1 text-xs font-semibold',
                                     $statusTextClasses,
@@ -141,11 +141,11 @@
                                     {{ $statusLabel }}
                                 </p>
                                 @if($unit->has_active_rental && $unit->active_rental_ends_at)
-                                    <p class="mt-1 text-xs text-rose-600">
+                                    <p class="mt-1 text-xs text-rose-600 dark:text-rose-400">
                                         Rented until {{ \Carbon\Carbon::parse($unit->active_rental_ends_at)->format('M d, Y h:i A') }}
                                     </p>
                                 @elseif($unit->has_upcoming_rental && $unit->next_rental_starts_at)
-                                    <p class="mt-1 text-xs text-amber-600">
+                                    <p class="mt-1 text-xs text-amber-600 dark:text-amber-400">
                                         Reserved starting {{ \Carbon\Carbon::parse($unit->next_rental_starts_at)->format('M d, Y h:i A') }}
                                     </p>
                                 @endif
@@ -153,13 +153,13 @@
 
                             <div class="text-right">
                                 @if($unit->price_display_mode === \App\Models\Unit::DISPLAY_MONTH && $unit->monthly_price_php)
-                                    <span class="text-base font-bold text-indigo-600 sm:text-lg">&#8369;{{ number_format($unit->monthly_price_php) }}</span>
-                                    <p class="text-[9px] font-bold uppercase tracking-tight text-slate-400 sm:text-[10px]">per month</p>
+                                    <span class="text-lg font-bold text-indigo-700 sm:text-xl dark:text-indigo-300">&#8369;{{ number_format($unit->monthly_price_php) }}</span>
+                                    <p class="text-[10px] font-bold uppercase tracking-tight text-slate-500 sm:text-xs dark:text-slate-300">per month</p>
                                 @elseif($unit->nightly_price_php)
-                                    <span class="text-base font-bold text-indigo-600 sm:text-lg">&#8369;{{ number_format($unit->nightly_price_php) }}</span>
-                                    <p class="text-[9px] font-bold uppercase tracking-tight text-slate-400 sm:text-[10px]">per night</p>
+                                    <span class="text-lg font-bold text-indigo-700 sm:text-xl dark:text-indigo-300">&#8369;{{ number_format($unit->nightly_price_php) }}</span>
+                                    <p class="text-[10px] font-bold uppercase tracking-tight text-slate-500 sm:text-xs dark:text-slate-300">per night</p>
                                 @else
-                                    <p class="text-sm font-medium text-slate-400">Price unavailable</p>
+                                    <p class="text-sm font-medium text-slate-500 dark:text-slate-300">Price unavailable</p>
                                 @endif
                             </div>
                         </div>
