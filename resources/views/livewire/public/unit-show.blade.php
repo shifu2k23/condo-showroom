@@ -23,7 +23,8 @@
                                         data-unit-gallery-slide
                                         src="{{ route('tenant.media.unit-images.show', ['unitImage' => $image]) }}"
                                         alt="{{ $unit->name }} image {{ $index + 1 }}"
-                                        class="absolute inset-0 h-full w-full object-cover {{ $index === 0 ? '' : 'hidden' }}"
+                                        class="absolute inset-0 h-full w-full object-cover"
+                                        @if($index !== 0) hidden @endif
                                         loading="{{ $index === 0 ? 'eager' : 'lazy' }}"
                                     />
                                 @endforeach

@@ -264,7 +264,9 @@ const initializeUnitGallery = (root) => {
         currentIndex = ((nextIndex % slides.length) + slides.length) % slides.length;
 
         slides.forEach((slide, index) => {
-            slide.hidden = index !== currentIndex;
+            const isActive = index === currentIndex;
+            slide.hidden = !isActive;
+            slide.classList.toggle('hidden', !isActive);
         });
 
         thumbnailButtons.forEach((button, index) => {
