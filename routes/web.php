@@ -52,6 +52,17 @@ Route::get('/project-images/{filename}', function (string $filename) {
 Route::view('/', 'pages.landing')->name('landing');
 Route::view('/instructions', 'pages.instructions')->name('instructions');
 
+// Fallback for stale GET-based logout links in production.
+Route::get('/logout', function (Request $request): RedirectResponse {
+    if (Auth::guard('web')->check()) {
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+    }
+
+    return redirect()->route('login');
+});
+
 /*
 |--------------------------------------------------------------------------
 | Public Tenant Showroom Routes
