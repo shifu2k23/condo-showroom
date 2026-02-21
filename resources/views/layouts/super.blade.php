@@ -8,7 +8,7 @@
             <header class="mb-6 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Super Admin</p>
-                    <h1 class="text-xl font-semibold text-slate-900">Tenant Management</h1>
+                    <h1 class="text-xl font-semibold text-slate-900">Tenant &amp; Account Management</h1>
                 </div>
                 <form method="POST" action="{{ route('super.logout') }}">
                     @csrf
@@ -26,4 +26,3 @@
         @fluxScripts
     </body>
 </html>
-
