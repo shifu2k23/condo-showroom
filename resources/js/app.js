@@ -16,6 +16,7 @@ const DEFAULT_ZOOM = 12;
 const PIN_ZOOM = 16;
 const mapRegistry = new WeakMap();
 const pickerSyncRegistry = new WeakMap();
+const unitGalleryRegistry = new WeakMap();
 
 const toNumber = (value) => {
     const parsed = Number.parseFloat(`${value ?? ''}`);
@@ -222,6 +223,128 @@ const bootstrapLeafletMaps = () => {
     });
 };
 
+const initializeUnitGallery = (root) => {
+    if (!(root instanceof HTMLElement) || unitGalleryRegistry.has(root)) {
+        return;
+    }
+
+    const slides = Array.from(root.querySelectorAll('[data-unit-gallery-slide]'));
+    if (slides.length === 0) {
+        return;
+    }
+
+    const previousButton = root.querySelector('[data-unit-gallery-prev]');
+    const nextButton = root.querySelector('[data-unit-gallery-next]');
+    const thumbnailButtons = Array.from(root.querySelectorAll('[data-unit-gallery-thumb]'));
+    const currentLabel = root.querySelector('[data-unit-gallery-current]');
+    const liveLabel = root.querySelector('[data-unit-gallery-live]');
+
+    let currentIndex = 0;
+    let autoplayTimer = null;
+
+    const stopAutoplay = () => {
+        if (autoplayTimer !== null) {
+            clearInterval(autoplayTimer);
+            autoplayTimer = null;
+        }
+    };
+
+    const startAutoplay = () => {
+        if (slides.length <= 1) {
+            return;
+        }
+
+        stopAutoplay();
+        autoplayTimer = window.setInterval(() => {
+            renderSlide(currentIndex + 1);
+        }, 4500);
+    };
+
+    const renderSlide = (nextIndex) => {
+        currentIndex = ((nextIndex % slides.length) + slides.length) % slides.length;
+
+        slides.forEach((slide, index) => {
+            slide.hidden = index !== currentIndex;
+        });
+
+        thumbnailButtons.forEach((button, index) => {
+            const isActive = index === currentIndex;
+            button.setAttribute('aria-current', isActive ? 'true' : 'false');
+            button.classList.toggle('ring-2', isActive);
+            button.classList.toggle('ring-indigo-500', isActive);
+            button.classList.toggle('ring-offset-2', isActive);
+            button.classList.toggle('ring-offset-white', isActive);
+            button.classList.toggle('dark:ring-offset-zinc-900', isActive);
+            button.classList.toggle('opacity-80', !isActive);
+        });
+
+        if (currentLabel) {
+            currentLabel.textContent = `${currentIndex + 1}`;
+        }
+
+        if (liveLabel) {
+            liveLabel.textContent = `Showing image ${currentIndex + 1} of ${slides.length}`;
+        }
+    };
+
+    if (previousButton instanceof HTMLButtonElement) {
+        previousButton.addEventListener('click', () => {
+            renderSlide(currentIndex - 1);
+            stopAutoplay();
+        });
+    }
+
+    if (nextButton instanceof HTMLButtonElement) {
+        nextButton.addEventListener('click', () => {
+            renderSlide(currentIndex + 1);
+            stopAutoplay();
+        });
+    }
+
+    thumbnailButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            const requestedIndex = Number.parseInt(button.dataset.index ?? '', 10);
+            if (Number.isNaN(requestedIndex)) {
+                return;
+            }
+
+            renderSlide(requestedIndex);
+            stopAutoplay();
+        });
+    });
+
+    root.addEventListener('mouseenter', stopAutoplay);
+    root.addEventListener('mouseleave', startAutoplay);
+    root.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowRight') {
+            event.preventDefault();
+            renderSlide(currentIndex + 1);
+            stopAutoplay();
+        }
+
+        if (event.key === 'ArrowLeft') {
+            event.preventDefault();
+            renderSlide(currentIndex - 1);
+            stopAutoplay();
+        }
+    });
+
+    renderSlide(0);
+    startAutoplay();
+    unitGalleryRegistry.set(root, { stopAutoplay });
+};
+
+const bootstrapUnitGalleries = () => {
+    document.querySelectorAll('[data-unit-gallery]').forEach((root) => {
+        initializeUnitGallery(root);
+    });
+};
+
+const bootstrapInteractiveUi = () => {
+    bootstrapLeafletMaps();
+    bootstrapUnitGalleries();
+};
+
 const handleLeafletPresetCoordinates = (event) => {
     const detail = event.detail ?? {};
     const latitude = toNumber(detail.latitude);
@@ -256,10 +379,10 @@ const handleLeafletPresetCoordinates = (event) => {
 };
 
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootstrapLeafletMaps, { once: true });
+    document.addEventListener('DOMContentLoaded', bootstrapInteractiveUi, { once: true });
 } else {
-    bootstrapLeafletMaps();
+    bootstrapInteractiveUi();
 }
 
-document.addEventListener('livewire:navigated', bootstrapLeafletMaps);
+document.addEventListener('livewire:navigated', bootstrapInteractiveUi);
 document.addEventListener('leaflet-picker-set-coordinates', handleLeafletPresetCoordinates);

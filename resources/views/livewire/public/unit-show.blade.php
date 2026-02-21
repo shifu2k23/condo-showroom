@@ -10,63 +10,20 @@
             <div class="space-y-6 lg:col-span-2">
                 <section class="overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
                     @if($unit->images->isNotEmpty())
-                        <div
-                            x-data="{
-                                current: 0,
-                                total: {{ $unit->images->count() }},
-                                timer: null,
-                                init() {
-                                    this.startAutoplay();
-                                },
-                                startAutoplay() {
-                                    if (this.total <= 1) {
-                                        return;
-                                    }
-                                    this.stopAutoplay();
-                                    this.timer = setInterval(() => this.next(), 4500);
-                                },
-                                stopAutoplay() {
-                                    if (this.timer) {
-                                        clearInterval(this.timer);
-                                        this.timer = null;
-                                    }
-                                },
-                                next() {
-                                    this.current = (this.current + 1) % this.total;
-                                },
-                                previous() {
-                                    this.current = (this.current - 1 + this.total) % this.total;
-                                },
-                                goTo(index) {
-                                    this.current = index;
-                                },
-                            }"
-                            x-init="init()"
-                            @mouseenter="stopAutoplay()"
-                            @mouseleave="startAutoplay()"
-                            class="space-y-3"
-                        >
+                        <div data-unit-gallery class="space-y-3">
                             <div
                                 class="relative aspect-video overflow-hidden bg-zinc-200 dark:bg-zinc-800"
                                 role="region"
                                 aria-roledescription="carousel"
                                 aria-label="{{ $unit->name }} image gallery"
                                 tabindex="0"
-                                @keydown.arrow-right.prevent="next()"
-                                @keydown.arrow-left.prevent="previous()"
                             >
                                 @foreach($unit->images as $index => $image)
                                     <img
-                                        x-show="current === {{ $index }}"
-                                        x-transition:enter="transform transition ease-out duration-500"
-                                        x-transition:enter-start="translate-x-4 opacity-0"
-                                        x-transition:enter-end="translate-x-0 opacity-100"
-                                        x-transition:leave="transform transition ease-in duration-500 absolute inset-0"
-                                        x-transition:leave-start="translate-x-0 opacity-100"
-                                        x-transition:leave-end="-translate-x-4 opacity-0"
+                                        data-unit-gallery-slide
                                         src="{{ route('tenant.media.unit-images.show', ['unitImage' => $image]) }}"
                                         alt="{{ $unit->name }} image {{ $index + 1 }}"
-                                        class="absolute inset-0 h-full w-full object-cover"
+                                        class="absolute inset-0 h-full w-full object-cover {{ $index === 0 ? '' : 'hidden' }}"
                                         loading="{{ $index === 0 ? 'eager' : 'lazy' }}"
                                     />
                                 @endforeach
@@ -77,21 +34,21 @@
                                     <div class="absolute inset-x-0 bottom-3 flex items-center justify-between px-3">
                                         <button
                                             type="button"
+                                            data-unit-gallery-prev
                                             class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/45 text-lg font-semibold text-white transition hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-                                            @click="previous(); stopAutoplay()"
                                             aria-label="Previous image"
                                         >
                                             &larr;
                                         </button>
 
                                         <p class="rounded-full bg-black/45 px-3 py-1 text-xs font-semibold tracking-wide text-white">
-                                            <span x-text="current + 1"></span> / {{ $unit->images->count() }}
+                                            <span data-unit-gallery-current>1</span> / {{ $unit->images->count() }}
                                         </p>
 
                                         <button
                                             type="button"
+                                            data-unit-gallery-next
                                             class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/45 text-lg font-semibold text-white transition hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-                                            @click="next(); stopAutoplay()"
                                             aria-label="Next image"
                                         >
                                             &rarr;
@@ -99,7 +56,7 @@
                                     </div>
 
                                     <p class="sr-only" aria-live="polite">
-                                        <span x-text="'Showing image ' + (current + 1) + ' of ' + total"></span>
+                                        <span data-unit-gallery-live>Showing image 1 of {{ $unit->images->count() }}</span>
                                     </p>
                                 @endif
                             </div>
@@ -109,11 +66,11 @@
                                     @foreach($unit->images as $index => $image)
                                         <button
                                             type="button"
-                                            @click="goTo({{ $index }}); stopAutoplay()"
-                                            :class="current === {{ $index }} ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-white dark:ring-offset-zinc-900' : 'opacity-80 hover:opacity-100'"
-                                            :aria-current="current === {{ $index }} ? 'true' : 'false'"
+                                            data-unit-gallery-thumb
+                                            data-index="{{ $index }}"
+                                            aria-current="{{ $index === 0 ? 'true' : 'false' }}"
                                             aria-label="Show image {{ $index + 1 }}"
-                                            class="overflow-hidden rounded-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/70"
+                                            class="overflow-hidden rounded-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/70 {{ $index === 0 ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-white dark:ring-offset-zinc-900' : 'opacity-80 hover:opacity-100' }}"
                                         >
                                             <img
                                                 src="{{ route('tenant.media.unit-images.show', ['unitImage' => $image]) }}"
