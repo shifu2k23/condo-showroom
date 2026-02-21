@@ -131,7 +131,7 @@
 
                         <div class="flex items-start justify-between gap-2 rounded-2xl border border-slate-200/70 bg-white/90 p-2.5 shadow-sm sm:gap-3 sm:p-3 dark:border-slate-700/80 dark:bg-slate-900/80">
                             <div>
-                                <h2 class="text-lg font-extrabold leading-tight tracking-tight text-slate-900 sm:text-xl dark:text-slate-100">{{ $unit->name }}</h2>
+                                <h2 class="text-lg font-extrabold leading-tight tracking-tight text-white sm:text-xl">{{ $unit->name }}</h2>
                                 <p class="text-sm italic text-slate-600 sm:text-base dark:text-slate-300">{{ $unit->location ?: 'Location not provided' }}</p>
                                 <p class="mt-0.5 text-xs uppercase tracking-wide text-slate-500 sm:mt-1 dark:text-slate-400">{{ $unit->category?->name ?? 'Uncategorized' }}</p>
                                 <p @class([
